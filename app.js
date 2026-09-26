@@ -128,12 +128,22 @@ let userCheatsheet = []; // Fully mutable cheatsheet stored in localStorage
 let allTimePRs = {}; // All-time Personal Records per exercise: { [exerciseName]: { weight, reps, date, isNew } }
 let activeRecipeIngredients = []; // Temporary ingredients in Smart Calculator
 
-function getTodayStr() {
-  const d = new Date();
+function formatDateStr(d) {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function parseLocalDate(dateStr) {
+  if (!dateStr) return new Date();
+  const parts = String(dateStr).split('-');
+  if (parts.length !== 3) return new Date();
+  return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+}
+
+function getTodayStr() {
+  return formatDateStr(new Date());
 }
 
 // HELPER: NORMALIZE EXERCISE INTO SET-BY-SET STRUCTURE
@@ -167,29 +177,59 @@ function normalizeExerciseSets(ex) {
 // GET OR INITIALIZE DAY LOG (CLEAN ZERO / NULL FOR UNLOGGED DAYS)
 function getActiveLog(dateStr = currentDate) {
   if (!db[dateStr]) {
-    const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay(); // 0 = Sun, 1 = Mon...
-    let splitObj = WORKOUT_SPLITS[0]; // Default Monday
-    if (dayOfWeek === 2) splitObj = WORKOUT_SPLITS[1]; // Tuesday
-    if (dayOfWeek === 3) splitObj = WORKOUT_SPLITS[2]; // Wednesday
-    if (dayOfWeek === 4) splitObj = WORKOUT_SPLITS[3]; // Thursday
+    const d = parseLocalDate(dateStr);
+    const dayOfWeek = d.getDay(); // 0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat
+    
+    let splitObj = null;
+    if (dayOfWeek === 1) splitObj = WORKOUT_SPLITS[0]; // Monday: Upper Body
+    else if (dayOfWeek === 2) splitObj = WORKOUT_SPLITS[1]; // Tuesday: Legs + Core
+    else if (dayOfWeek === 3) splitObj = WORKOUT_SPLITS[2]; // Wednesday: Upper Body Focus
+    else if (dayOfWeek === 4) splitObj = WORKOUT_SPLITS[3]; // Thursday: Legs + Core Emphasis
 
-    const initialExercises = JSON.parse(JSON.stringify(splitObj.exercises)).map(ex => {
-      ex.done = false;
-      return normalizeExerciseSets(ex);
-    });
+    if (splitObj) {
+      const initialExercises = JSON.parse(JSON.stringify(splitObj.exercises)).map(ex => {
+        ex.done = false;
+        return normalizeExerciseSets(ex);
+      });
 
-    db[dateStr] = {
-      date: dateStr,
-      workout: {
-        name: splitObj.name,
-        meta: splitObj.meta,
-        status: 'Ready'
-      },
-      exercises: initialExercises,
-      meals: [], // Zero default meals for clean slate
-      water: 0.0, // Zero default water
-      recovery: { soreness: '', mood: '', joint: '', notes: '' }
-    };
+      db[dateStr] = {
+        date: dateStr,
+        workout: {
+          name: splitObj.name,
+          meta: splitObj.meta,
+          status: 'Ready'
+        },
+        exercises: initialExercises,
+        meals: [], // Zero default meals for clean slate
+        water: 0.0, // Zero default water
+        recovery: { soreness: '', mood: '', joint: '', notes: '' }
+      };
+    } else {
+      // Friday, Saturday, Sunday: Scheduled Rest & Active Recovery Day
+      const restTitles = {
+        0: 'Sunday: Full Rest & Meal Prep',
+        5: 'Friday: Active Recovery & Mobility',
+        6: 'Saturday: Active Recovery & Rest'
+      };
+      const restMetas = {
+        0: 'Rest day · Hydration, light walking, mobility & weekly nutrition prep',
+        5: 'Rest day · Foam rolling, light cardio walk & recovery focus',
+        6: 'Rest day · Muscle recovery, protein synthesis & restorative rest'
+      };
+
+      db[dateStr] = {
+        date: dateStr,
+        workout: {
+          name: restTitles[dayOfWeek] || 'Rest & Recovery Day',
+          meta: restMetas[dayOfWeek] || 'Rest day · Load any split below if training today',
+          status: 'Rest Day'
+        },
+        exercises: [], // Clean empty exercise list for rest days
+        meals: [],
+        water: 0.0,
+        recovery: { soreness: '', mood: '', joint: '', notes: '' }
+      };
+    }
   } else {
     if (db[dateStr].exercises) {
       db[dateStr].exercises.forEach(ex => normalizeExerciseSets(ex));
@@ -444,7 +484,7 @@ function sumMealsProtein(log = getActiveLog()) {
 
 // RENDERING FUNCTIONS
 function renderDateHeader() {
-  const d = new Date(currentDate + 'T00:00:00');
+  const d = parseLocalDate(currentDate);
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(d);
   const dateFormatted = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
 
@@ -699,7 +739,7 @@ function renderSidebar() {
 
   const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const now = new Date(currentDate + 'T00:00:00');
+  const now = parseLocalDate(currentDate);
   const dayOfWeek = (now.getDay() + 6) % 7; // 0=Mon, 6=Sun
   
   const monday = new Date(now);
@@ -713,7 +753,7 @@ function renderSidebar() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(d.getDate() + i);
-    const dateKey = d.toISOString().split('T')[0];
+    const dateKey = formatDateStr(d);
     const dayLog = db[dateKey];
 
     let dietScore = 0;
@@ -1048,7 +1088,7 @@ function renderWeeklyView() {
   if (!weeklyList) return;
 
   const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const now = new Date(currentDate + 'T00:00:00');
+  const now = parseLocalDate(currentDate);
   const dayOfWeek = (now.getDay() + 6) % 7; // 0=Mon, 6=Sun
   
   const monday = new Date(now);
@@ -1065,7 +1105,7 @@ function renderWeeklyView() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(d.getDate() + i);
-    const dateKey = d.toISOString().split('T')[0];
+    const dateKey = formatDateStr(d);
     const dayLog = db[dateKey];
 
     let dietScore = 0;
@@ -1896,16 +1936,16 @@ function bindEvents() {
 
   // Date controls
   document.getElementById('prevDayBtn').addEventListener('click', () => {
-    const d = new Date(currentDate + 'T00:00:00');
+    const d = parseLocalDate(currentDate);
     d.setDate(d.getDate() - 1);
-    currentDate = d.toISOString().split('T')[0];
+    currentDate = formatDateStr(d);
     render();
   });
 
   document.getElementById('nextDayBtn').addEventListener('click', () => {
-    const d = new Date(currentDate + 'T00:00:00');
+    const d = parseLocalDate(currentDate);
     d.setDate(d.getDate() + 1);
-    currentDate = d.toISOString().split('T')[0];
+    currentDate = formatDateStr(d);
     render();
   });
 
