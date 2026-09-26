@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FitSync — All 5 Interactive Prototypes (Full Test Bench)</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1329;
+      --card-bg: #141f36;
+      --card-border: #233354;
+      --primary: #38bdf8;
+      --primary-gradient: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+      --accent: #10b981;
+      --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --water-blue: #0284c7;
+      --water-gradient: linear-gradient(180deg, #38bdf8 0%, #0369a1 100%);
+      --gold-gradient: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .tabs-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .proto-tab {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--muted);
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .proto-tab.active {
+      background: var(--primary);
+      color: #0b1329;
+      border-color: var(--primary);
+    }
+
+    .proto-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .proto-card.hidden { display: none; }
+    .proto-title { font-size: 1.2rem; font-weight: 800; color: #fff; }
+    .proto-desc { font-size: 0.88rem; color: var(--muted); }
+
+    /* SOUND LAB */
+    .sound-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f1a30;
+      border: 1px solid var(--card-border);
+      padding: 14px 18px;
+      border-radius: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-sound {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-sound:hover {
+      background: var(--primary);
+      color: #0b1329;
+      transform: scale(1.02);
+    }
+
+    /* TIMER */
+    .timer-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: rgba(11, 19, 41, 0.6);
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+    }
+    .btn-timer {
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-timer.active {
+      background: var(--primary);
+      color: #0b1329;
+      border-color: var(--primary);
+    }
+
+    /* WATER SLIDER */
+    .water-box-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      background: rgba(11, 19, 41, 0.6);
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+    }
+    .water-slider-container {
+      width: 140px;
+      height: 260px;
+      background: #0f1a30;
+      border-radius: 36px;
+      position: relative;
+      overflow: hidden;
+      border: 2px solid #1e2d4d;
+      box-shadow: inset 0 4px 15px rgba(0,0,0,0.5);
+      touch-action: none;
+      cursor: ns-resize;
+    }
+    .water-liquid-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--water-gradient);
+      border-radius: 0 0 34px 34px;
+      transition: height 0.15s ease-out;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 14px;
+    }
+    .water-bubble-wave {
+      position: absolute;
+      top: -12px;
+      left: 0;
+      right: 0;
+      height: 14px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 50%;
+      filter: blur(1px);
+    }
+    .water-slider-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+    .water-val-text { font-size: 2rem; font-weight: 900; color: #fff; }
+    .water-target-text { font-size: 0.8rem; color: #e0f2fe; font-weight: 700; opacity: 0.9; }
+
+    .btn-quick {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--primary);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-quick:hover { background: rgba(56, 189, 248, 0.3); transform: scale(1.05); }
+
+    /* SET-BY-SET */
+    .exercise-card-set {
+      background: rgba(11, 19, 41, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ex-header { display: flex; justify-content: space-between; align-items: center; }
+    .set-row {
+      display: grid;
+      grid-template-columns: 50px 1fr 1fr 40px;
+      gap: 10px;
+      align-items: center;
+      background: rgba(30, 45, 77, 0.4);
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+    .stepper-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f1a30;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 4px 6px;
+    }
+    .step-btn {
+      background: var(--card-border);
+      border: none;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      font-weight: 900;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .step-btn:hover { background: var(--primary); color: #0b1329; }
+    .step-val { font-weight: 800; font-size: 0.85rem; color: #fff; }
+    .set-check { width: 24px; height: 24px; accent-color: var(--accent); cursor: pointer; }
+
+    /* CHEATSHEET MULTIPLIER */
+    .food-card-demo {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(11, 19, 41, 0.6);
+      border: 1px solid var(--card-border);
+      padding: 14px 18px;
+      border-radius: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .multiplier-row {
+      display: flex;
+      background: #0f1a30;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .mult-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .mult-btn.active { background: var(--primary); color: #0b1329; font-weight: 800; }
+
+    /* WIZARD */
+    .wizard-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .step-indicator { display: flex; gap: 6px; margin-bottom: 8px; }
+    .step-dot { flex: 1; height: 6px; background: var(--card-border); border-radius: 3px; }
+    .step-dot.active { background: var(--primary); }
+    .wizard-step-pane { display: flex; flex-direction: column; gap: 16px; }
+    .wizard-step-pane.hidden { display: none; }
+    .wizard-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .wizard-field {
+      background: #0f1a30;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .wizard-field label { font-size: 0.72rem; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+    .wizard-field input, .wizard-field select {
+      background: #141f36;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: #fff;
+      padding: 8px 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .staples-chips-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+    .staple-chip-select {
+      background: #0f1a30;
+      border: 1px solid var(--card-border);
+      color: var(--muted);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .staple-chip-select.selected {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .split-preset-row {
+      background: #0f1a30;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-action-primary {
+      background: var(--primary-gradient);
+      border: none;
+      color: #0b1329;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .toast-alert {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
+      color: #fff;
+      padding: 14px 24px;
+      border-radius: 30px;
+      font-weight: 800;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 9999;
+    }
+    .toast-alert.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- PRELOADED REAL WAV AUDIO ELEMENTS -->
+<audio id="sndRest" src="rest_chime.wav" preload="auto"></audio>
+<audio id="sndWorkout" src="workout_complete.wav" preload="auto"></audio>
+<audio id="sndApplause" src="gentle_applause.wav" preload="auto"></audio>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div>
+      <h1 style="font-size: 1.3rem; font-weight: 800; color: #fff;">⚡ FitSync Complete 5-Feature Test Bench</h1>
+      <div style="font-size: 0.82rem; color: var(--muted); margin-top: 4px;">
+        Test each component live in your browser before we merge into the master dashboard.
+      </div>
+    </div>
+    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent);">Ready to Test</span>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <div class="tabs-bar">
+    <button class="proto-tab active" onclick="switchProto('audioTab', this)">🎵 1. Audio & ⏱️ Rest Alarm</button>
+    <button class="proto-tab" onclick="switchProto('waterTab', this)">💧 2. iOS Water Slider</button>
+    <button class="proto-tab" onclick="switchProto('stepperTab', this)">🏋️ 3. Set-by-Set Stepper</button>
+    <button class="proto-tab" onclick="switchProto('cheatsheetTab', this)">🥗 4. Cheatsheet Stepper</button>
+    <button class="proto-tab" onclick="switchProto('onboardingTab', this)">🚀 5. Onboarding Wizard</button>
+  </div>
+
+  <!-- TAB 1: AUDIO, REST TIMER & CELEBRATIONS -->
+  <div class="proto-card" id="audioTab">
+    <div>
+      <h2 class="proto-title">🎵 1. Gentle Acoustic Audio & Rest Countdown Timer</h2>
+      <p class="proto-desc">Zero-cortisol sound design: warm marimba chords, gentle triumph, and soft crowd applause for PRs.</p>
+    </div>
+
+    <!-- SOUND PREVIEWS -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="sound-row">
+        <div>
+          <strong style="color: var(--primary);">🌱 Rest Ended (Gentle Motivation)</strong>
+          <div style="font-size: 0.76rem; color: var(--muted);">Warm rising acoustic marimba triad.</div>
+        </div>
+        <button class="btn-sound" onclick="playAudio('sndRest')">▶ Play Rest Chime</button>
+      </div>
+
+      <div class="sound-row">
+        <div>
+          <strong style="color: var(--accent);">💪 Workout Complete (Warm Triumph)</strong>
+          <div style="font-size: 0.76rem; color: var(--muted);">Warm harmonic major chord cascade.</div>
+        </div>
+        <button class="btn-sound" style="border-color: var(--accent); color: var(--accent); background: rgba(16, 185, 129, 0.15);" onclick="playAudio('sndWorkout')">▶ Play Workout Harmony</button>
+      </div>
+
+      <div class="sound-row">
+        <div>
+          <strong style="color: var(--gold); color: #fbbf24;">👏 PR Celebration (Chorus + Hand Claps)</strong>
+          <div style="font-size: 0.76rem; color: var(--muted);">Major 7th chord with organic rhythmic applause.</div>
+        </div>
+        <button class="btn-sound" style="border-color: #fbbf24; color: #fbbf24; background: rgba(251, 191, 36, 0.15);" onclick="playAudio('sndApplause')">▶ Play Claps & Chorus</button>
+      </div>
+    </div>
+
+    <!-- REST TIMER -->
+    <div class="timer-wrap">
+      <div style="font-size: 2.8rem; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums;" id="timerDisplay">00:03</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+        <button class="btn-timer active" onclick="startRestTimer(3)">⏱️ Test 3-Second Alarm</button>
+        <button class="btn-timer" onclick="startRestTimer(60)">60s</button>
+        <button class="btn-timer" onclick="startRestTimer(90)">90s</button>
+        <button class="btn-timer" style="color: var(--danger);" onclick="stopRestTimer()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- PR CELEBRATION -->
+    <div style="background: rgba(251, 191, 36, 0.05); border: 1px solid rgba(251, 191, 36, 0.25); padding: 18px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #fbbf24; font-size: 0.95rem;">🏆 Break Lifetime PR (Mega Confetti + Claps):</strong>
+        <div style="font-size: 0.78rem; color: var(--muted);">Dual cannon blast + golden shower + gentle applause!</div>
+      </div>
+      <button class="btn-action-primary" style="background: var(--gold-gradient); color: #0b1329;" onclick="triggerPRCelebration()">
+        🏆 Test PR Mega Cannon!
+      </button>
+    </div>
+  </div>
+
+  <!-- TAB 2: WATER SLIDER -->
+  <div class="proto-card hidden" id="waterTab">
+    <div>
+      <h2 class="proto-title">💧 2. iOS-Style Fluid Water Slider</h2>
+      <p class="proto-desc">Drag up/down inside the fluid bottle capsule or tap quick presets to log water intake smoothly.</p>
+    </div>
+
+    <div class="water-box-wrap">
+      <div class="water-slider-container" id="waterSlider">
+        <div class="water-liquid-fill" id="waterFill" style="height: 60%;">
+          <div class="water-bubble-wave"></div>
+        </div>
+        <div class="water-slider-text">
+          <div class="water-val-text" id="waterLitresText">1.8 L</div>
+          <div class="water-target-text" id="waterTargetText">Target: 3.0 L</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+        <button class="btn-quick" onclick="addWater(0.25)">+250ml Glass</button>
+        <button class="btn-quick" onclick="addWater(0.50)">+500ml Bottle</button>
+        <button class="btn-quick" style="border-color: var(--danger); color: var(--danger);" onclick="resetWater()">Reset (0L)</button>
+      </div>
+      <div style="font-size: 0.78rem; color: var(--muted);">
+        💡 <em>Drag with mouse or thumb inside the blue capsule!</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: SET-BY-SET STEPPER -->
+  <div class="proto-card hidden" id="stepperTab">
+    <div>
+      <h2 class="proto-title">🏋️ 3. Set-by-Set Logging with Stepper Pills</h2>
+      <p class="proto-desc">Zero typing on mobile! Tap steppers to adjust weight and reps. Checking a set complete automatically triggers the rest chime.</p>
+    </div>
+
+    <div class="exercise-card-set">
+      <div class="ex-header">
+        <div>
+          <h3 style="color: #fff; font-size: 1.05rem; font-weight: 800;">Goblet Squats</h3>
+          <div style="font-size: 0.78rem; color: var(--muted);">Target: 3 Rounds · 12.5kg · 90s rest</div>
+        </div>
+        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--accent);">In Progress</span>
+      </div>
+
+      <!-- SET 1 -->
+      <div class="set-row">
+        <span style="font-weight: 800; color: var(--muted); font-size: 0.85rem;">SET 1</span>
+        <div class="stepper-pill">
+          <button class="step-btn" onclick="adjustWeight('w1', -2.5)">-</button>
+          <span class="step-val" id="w1">12.5 kg</span>
+          <button class="step-btn" onclick="adjustWeight('w1', 2.5)">+</button>
+        </div>
+        <div class="stepper-pill">
+          <button class="step-btn" onclick="adjustReps('r1', -1)">-</button>
+          <span class="step-val" id="r1">10 reps</span>
+          <button class="step-btn" onclick="adjustReps('r1', 1)">+</button>
+        </div>
+        <input type="checkbox" class="set-check" onchange="onSetCompleted(this)" />
+      </div>
+
+      <!-- SET 2 -->
+      <div class="set-row">
+        <span style="font-weight: 800; color: var(--muted); font-size: 0.85rem;">SET 2</span>
+        <div class="stepper-pill">
+          <button class="step-btn" onclick="adjustWeight('w2', -2.5)">-</button>
+          <span class="step-val" id="w2">12.5 kg</span>
+          <button class="step-btn" onclick="adjustWeight('w2', 2.5)">+</button>
+        </div>
+        <div class="stepper-pill">
+          <button class="step-btn" onclick="adjustReps('r2', -1)">-</button>
+          <span class="step-val" id="r2">10 reps</span>
+          <button class="step-btn" onclick="adjustReps('r2', 1)">+</button>
+        </div>
+        <input type="checkbox" class="set-check" onchange="onSetCompleted(this)" />
+      </div>
+
+      <!-- SET 3 -->
+      <div class="set-row">
+        <span style="font-weight: 800; color: var(--muted); font-size: 0.85rem;">SET 3</span>
+        <div class="stepper-pill">
+          <button class="step-btn" onclick="adjustWeight('w3', -2.5)">-</button>
+          <span class="step-val" id="w3">12.5 kg</span>
+          <button class="step-btn" onclick="adjustWeight('w3', 2.5)">+</button>
+        </div>
+        <div class="stepper-pill">
+          <button class="step-btn" onclick="adjustReps('r3', -1)">-</button>
+          <span class="step-val" id="r3">8 reps</span>
+          <button class="step-btn" onclick="adjustReps('r3', 1)">+</button>
+        </div>
+        <input type="checkbox" class="set-check" onchange="onSetCompleted(this)" />
+      </div>
+      <div style="font-size: 0.78rem; color: var(--muted);">
+        💡 <em>Check a set box to see the set-complete toast and auto-start the rest timer!</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: CHEATSHEET MULTIPLIER -->
+  <div class="proto-card hidden" id="cheatsheetTab">
+    <div>
+      <h2 class="proto-title">🥗 4. Standardized Cheatsheet with Stepper Multipliers</h2>
+      <p class="proto-desc">Clean 1x or 100g base units. Scale portions up or down in 1 tap, and edit food calorie values locally.</p>
+    </div>
+
+    <!-- FOOD CARD 1: 1 PHULKA -->
+    <div class="food-card-demo">
+      <div>
+        <strong style="color: #fff; font-size: 0.95rem;">1 Phulka</strong>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 2px;" id="phulkaMeta">1 medium (35g) · 90 kcal · 3.2g protein</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="multiplier-row">
+          <button class="mult-btn" onclick="setMult('phulka', 1, this)">1x</button>
+          <button class="mult-btn active" onclick="setMult('phulka', 2, this)">2x</button>
+          <button class="mult-btn" onclick="setMult('phulka', 3, this)">3x</button>
+        </div>
+        <button class="btn-quick" onclick="showToast('🥗', 'Added to Meal Log!', '2 Phulkas (70g) · 180 kcal')">+ Add</button>
+      </div>
+    </div>
+
+    <!-- FOOD CARD 2: AMUL PROTEIN CURD (100g BASE) -->
+    <div class="food-card-demo">
+      <div>
+        <strong style="color: #fff; font-size: 0.95rem;">Amul Protein Curd</strong>
+        <div style="font-size: 0.8rem; color: var(--muted); margin-top: 2px;" id="curdMeta">100g base · 70 kcal · 6.0g protein</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="multiplier-row">
+          <button class="mult-btn" onclick="setCurdMult(0.5, this)">0.5x (50g)</button>
+          <button class="mult-btn" onclick="setCurdMult(1.0, this)">1x (100g)</button>
+          <button class="mult-btn active" onclick="setCurdMult(2.0, this)">2x (200g)</button>
+        </div>
+        <button class="btn-quick" onclick="showToast('🥣', 'Added to Meal Log!', '200g Curd · 140 kcal · 12g protein')">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: ONBOARDING WIZARD -->
+  <div class="proto-card hidden" id="onboardingTab">
+    <div>
+      <h2 class="proto-title">🚀 5. Comprehensive 4-Step Onboarding Wizard</h2>
+      <p class="proto-desc">First-time visitor flow: Cut Targets & Bodyweight → Daily Water Goal → Dietary Staples Selection → Workout Split Rite of Passage.</p>
+    </div>
+
+    <div class="wizard-card">
+      <div class="step-indicator">
+        <div class="step-dot active" id="dot1"></div>
+        <div class="step-dot" id="dot2"></div>
+        <div class="step-dot" id="dot3"></div>
+        <div class="step-dot" id="dot4"></div>
+      </div>
+
+      <!-- STEP 1: MACRO TARGETS -->
+      <div class="wizard-step-pane" id="wStep1">
+        <h3 style="color: #fff; font-size: 1.15rem; font-weight: 800;">Step 1 of 4: Your Body & Cut Targets</h3>
+        <p style="font-size: 0.85rem; color: var(--muted);">Personalize your calorie deficit and high-protein baseline for cutting.</p>
+        
+        <div class="wizard-field-grid">
+          <div class="wizard-field">
+            <label>Starting Body Weight</label>
+            <input type="number" step="0.1" value="70.0" />
+          </div>
+          <div class="wizard-field">
+            <label>Target Daily Calories</label>
+            <input type="number" value="1700" />
+          </div>
+          <div class="wizard-field">
+            <label>Target Daily Protein (g)</label>
+            <input type="number" value="130" />
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+          <button class="btn-action-primary" onclick="goToWizardStep(2)">Next: Water Goal ➔</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: WATER GOAL & AUDIO -->
+      <div class="wizard-step-pane hidden" id="wStep2">
+        <h3 style="color: #fff; font-size: 1.15rem; font-weight: 800;">Step 2 of 4: Hydration & Rest Sound Preferences</h3>
+        <p style="font-size: 0.85rem; color: var(--muted);">Configure your daily water target and audio preferences.</p>
+
+        <div class="wizard-field-grid">
+          <div class="wizard-field">
+            <label>Daily Water Intake Goal</label>
+            <select>
+              <option value="2.5">2.5 Liters</option>
+              <option value="3.0" selected>3.0 Liters (Recommended)</option>
+              <option value="3.5">3.5 Liters</option>
+              <option value="4.0">4.0 Liters</option>
+            </select>
+          </div>
+          <div class="wizard-field">
+            <label>Default Rest Interval</label>
+            <select>
+              <option value="60">60 seconds</option>
+              <option value="90" selected>90 seconds (Standard)</option>
+              <option value="120">2 minutes (Strength)</option>
+            </select>
+          </div>
+          <div class="wizard-field">
+            <label>Sound Style</label>
+            <select>
+              <option value="gentle" selected>🌱 Gentle Chimes & Claps (Zero Cortisol)</option>
+              <option value="silent">📳 Vibrate Only (Silent Gym)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+          <button class="btn-quick" onclick="goToWizardStep(1)">⬅ Back</button>
+          <button class="btn-action-primary" onclick="goToWizardStep(3)">Next: Diet Staples ➔</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: DIET & CHEATSHEET PREFERENCES -->
+      <div class="wizard-step-pane hidden" id="wStep3">
+        <h3 style="color: #fff; font-size: 1.15rem; font-weight: 800;">Step 3 of 4: Select Your Daily Diet Staples</h3>
+        <p style="font-size: 0.85rem; color: var(--muted);">Pick your favorite 4-5 staples to pin as 1-tap quick buttons on your dashboard:</p>
+
+        <div class="staples-chips-picker">
+          <div class="staple-chip-select selected" onclick="toggleStaple(this)">✓ 1 Phulka (35g)</div>
+          <div class="staple-chip-select selected" onclick="toggleStaple(this)">✓ Amul Protein Curd</div>
+          <div class="staple-chip-select selected" onclick="toggleStaple(this)">✓ 1.5 Scoops Whey</div>
+          <div class="staple-chip-select selected" onclick="toggleStaple(this)">✓ Rajma Curry</div>
+          <div class="staple-chip-select selected" onclick="toggleStaple(this)">✓ 2-Egg Omelette</div>
+          <div class="staple-chip-select" onclick="toggleStaple(this)">Soya / Chana Curry</div>
+          <div class="staple-chip-select" onclick="toggleStaple(this)">Roasted Makhana</div>
+          <div class="staple-chip-select" onclick="toggleStaple(this)">Protein Oats Bowl</div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+          <button class="btn-quick" onclick="goToWizardStep(2)">⬅ Back</button>
+          <button class="btn-action-primary" onclick="goToWizardStep(4)">Next: Workout Split ➔</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: WORKOUT SPLIT RITE OF PASSAGE -->
+      <div class="wizard-step-pane hidden" id="wStep4">
+        <h3 style="color: #fff; font-size: 1.15rem; font-weight: 800;">Step 4 of 4: The Workout Split Rite of Passage</h3>
+        <p style="font-size: 0.85rem; color: var(--muted);">Review the 4-day split cards. Agree, edit exercises, delete days, or add your custom routine.</p>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="split-preset-row">
+            <div>
+              <strong style="color: #fff;">Monday: Upper Body + Pull-ups</strong>
+              <div style="font-size: 0.76rem; color: var(--muted);">Goblet Squats, RDLs, Pull-ups, Press (10 exercises)</div>
+            </div>
+            <button class="btn-quick" style="font-size: 0.75rem;">Edit / Customize</button>
+          </div>
+          <div class="split-preset-row">
+            <div>
+              <strong style="color: #fff;">Tuesday: Legs + Core (Light)</strong>
+              <div style="font-size: 0.76rem; color: var(--muted);">Walking Lunges, Calf Raises, Sit-ups (6 exercises)</div>
+            </div>
+            <button class="btn-quick" style="font-size: 0.75rem;">Edit / Customize</button>
+          </div>
+          <div class="split-preset-row">
+            <div>
+              <strong style="color: #fff;">Wednesday: Upper Body Focus</strong>
+              <div style="font-size: 0.76rem; color: var(--muted);">Bicep Curls, Shoulder Press, Pull-ups (8 exercises)</div>
+            </div>
+            <button class="btn-quick" style="font-size: 0.75rem;">Edit / Customize</button>
+          </div>
+          <div class="split-preset-row">
+            <div>
+              <strong style="color: #fff;">Thursday: Legs + Core Emphasis</strong>
+              <div style="font-size: 0.76rem; color: var(--muted);">Bulgarian Split Squats, Leg Curls, Planks (7 exercises)</div>
+            </div>
+            <button class="btn-quick" style="font-size: 0.75rem;">Edit / Customize</button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+          <button class="btn-quick" onclick="goToWizardStep(3)">⬅ Back</button>
+          <button class="btn-action-primary" style="background: var(--accent-gradient); color: #fff;" onclick="showToast('🚀', 'Onboarding Complete!', 'Targets, water, staples, and workout splits saved.');">🚀 Complete Onboarding & Save!</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST ALERT -->
+<div class="toast-alert" id="prToast">
+  <span style="font-size: 1.4rem;" id="toastIcon">👏</span>
+  <div>
+    <div style="font-size: 0.95rem;" id="toastTitle">NEW PERSONAL RECORD!</div>
+    <div style="font-size: 0.78rem; opacity: 0.9;" id="toastSub">Pull-ups: 7 reps (+1 rep increase)</div>
+  </div>
+</div>
+
+<script>
+  // Tab Switcher
+  function switchProto(tabId, btn) {
+    document.querySelectorAll('.proto-card').forEach(c => c.classList.add('hidden'));
+    document.getElementById(tabId).classList.remove('hidden');
+    document.querySelectorAll('.proto-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // Preloaded Real HTML5 Audio
+  function playAudio(elementId) {
+    const audio = document.getElementById(elementId);
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(err => {
+      audio.load();
+      audio.play().catch(e => console.warn(e));
+    });
+  }
+
+  function unlockAllAudio() {
+    ['sndRest', 'sndWorkout', 'sndApplause'].forEach(id => {
+      const a = document.getElementById(id);
+      if (a) a.load();
+    });
+  }
+
+  window.addEventListener('click', unlockAllAudio, { once: true });
+  window.addEventListener('touchstart', unlockAllAudio, { once: true });
+
+  // REST TIMER
+  let timerInterval = null;
+  let timerRemaining = 3;
+
+  function startRestTimer(seconds) {
+    unlockAllAudio();
+    clearInterval(timerInterval);
+    timerRemaining = seconds;
+    updateDisplay();
+
+    timerInterval = setInterval(() => {
+      timerRemaining--;
+      updateDisplay();
+
+      if (timerRemaining <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById('timerDisplay').textContent = "READY! 🔔";
+        playAudio('sndRest');
+        showToast('🌱', 'Rest Complete — Ready for Next Set!', 'Take a breath and crush your reps.');
+      }
+    }, 1000);
+  }
+
+  function stopRestTimer() {
+    clearInterval(timerInterval);
+    timerRemaining = 0;
+    document.getElementById('timerDisplay').textContent = "00:00";
+  }
+
+  function updateDisplay() {
+    const m = Math.floor(timerRemaining / 60);
+    const s = timerRemaining % 60;
+    document.getElementById('timerDisplay').textContent = 
+      `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  // PR CONFETTI + SOUND CELEBRATION
+  function triggerPRCelebration() {
+    if (window.confetti) {
+      window.confetti({ particleCount: 100, spread: 60, origin: { x: 0.1, y: 0.7 } });
+      window.confetti({ particleCount: 100, spread: 60, origin: { x: 0.9, y: 0.7 } });
+      setTimeout(() => {
+        window.confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+      }, 250);
+    }
+    playAudio('sndApplause');
+    showToast('👏', 'NEW ALL-TIME PR: Pull-ups!', '7 reps (+1 rep personal best)');
+  }
+
+  function showToast(icon, title, sub) {
+    const toast = document.getElementById('prToast');
+    document.getElementById('toastIcon').textContent = icon;
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastSub').textContent = sub;
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); }, 3800);
+  }
+
+  // WATER SLIDER
+  let currentWater = 1.8;
+  const targetWater = 3.0;
+
+  function updateWaterUI() {
+    const pct = Math.min(Math.round((currentWater / targetWater) * 100), 100);
+    document.getElementById('waterFill').style.height = pct + '%';
+    document.getElementById('waterLitresText').textContent = currentWater.toFixed(1) + ' L';
+  }
+
+  function addWater(amount) {
+    currentWater = Math.min(Math.round((currentWater + amount) * 100) / 100, 5.0);
+    updateWaterUI();
+  }
+
+  function resetWater() {
+    currentWater = 0.0;
+    updateWaterUI();
+  }
+
+  const slider = document.getElementById('waterSlider');
+  let isDragging = false;
+
+  function handleSliderMove(e) {
+    const rect = slider.getBoundingClientRect();
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const offsetY = clientY - rect.top;
+    const clampedY = Math.max(0, Math.min(rect.height, offsetY));
+    const invertedPct = 1 - (clampedY / rect.height);
+    currentWater = Math.round((invertedPct * targetWater) * 10) / 10;
+    updateWaterUI();
+  }
+
+  slider.addEventListener('mousedown', (e) => { isDragging = true; handleSliderMove(e); });
+  window.addEventListener('mousemove', (e) => { if (isDragging) handleSliderMove(e); });
+  window.addEventListener('mouseup', () => { isDragging = false; });
+  slider.addEventListener('touchstart', (e) => { isDragging = true; handleSliderMove(e); });
+  window.addEventListener('touchmove', (e) => { if (isDragging) handleSliderMove(e); });
+  window.addEventListener('touchend', () => { isDragging = false; });
+
+  // STEPPERS
+  const weights = { w1: 12.5, w2: 12.5, w3: 12.5 };
+  const reps = { r1: 10, r2: 10, r3: 8 };
+
+  function adjustWeight(key, delta) {
+    weights[key] = Math.max(0, Math.round((weights[key] + delta) * 10) / 10);
+    document.getElementById(key).textContent = weights[key] + ' kg';
+  }
+
+  function adjustReps(key, delta) {
+    reps[key] = Math.max(1, reps[key] + delta);
+    document.getElementById(key).textContent = reps[key] + ' reps';
+  }
+
+  function onSetCompleted(checkbox) {
+    if (checkbox.checked) {
+      showToast('⚡', 'Set Crushed!', 'Round complete. 90s rest timer started.');
+      startRestTimer(3);
+      switchProto('audioTab', document.querySelectorAll('.proto-tab')[0]);
+    }
+  }
+
+  // CHEATSHEET MULTIPLIERS
+  function setMult(item, multiplier, btn) {
+    btn.parentElement.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const totalCals = 90 * multiplier;
+    const totalProtein = (3.2 * multiplier).toFixed(1);
+    const totalGrams = 35 * multiplier;
+    document.getElementById('phulkaMeta').textContent = 
+      `${multiplier} Phulkas (${totalGrams}g) · ${totalCals} kcal · ${totalProtein}g protein`;
+  }
+
+  function setCurdMult(multiplier, btn) {
+    btn.parentElement.querySelectorAll('.mult-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const totalCals = Math.round(70 * multiplier);
+    const totalProtein = (6.0 * multiplier).toFixed(1);
+    const totalGrams = Math.round(100 * multiplier);
+    document.getElementById('curdMeta').textContent = 
+      `${totalGrams}g portion · ${totalCals} kcal · ${totalProtein}g protein`;
+  }
+
+  // ONBOARDING
+  function goToWizardStep(step) {
+    [1, 2, 3, 4].forEach(i => {
+      document.getElementById(`wStep${i}`).classList.toggle('hidden', i !== step);
+      document.getElementById(`dot${i}`).classList.toggle('active', i <= step);
+    });
+  }
+
+  function toggleStaple(el) {
+    el.classList.toggle('selected');
+    if (el.classList.contains('selected')) {
+      el.textContent = '✓ ' + el.textContent.replace('✓ ', '');
+    } else {
+      el.textContent = el.textContent.replace('✓ ', '');
+    }
+  }
+</script>
+
+</body>
+</html>

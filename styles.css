@@ -817,6 +817,507 @@ button {
   border-color: #dfe9ff;
 }
 
+/* BACKUP BANNER */
+.backup-banner {
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  padding: 12px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 12px rgba(46, 106, 246, 0.06);
+}
+
+.backup-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #1e3a8a;
+}
+
+.backup-icon { font-size: 1.3rem; }
+.backup-banner-actions { display: flex; gap: 8px; }
+
+/* HYDRATION & FLUID WATER SLIDER */
+.hydration-block {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%);
+}
+
+.water-widget-container {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 4px;
+  flex-wrap: wrap;
+}
+
+.water-slider-container {
+  width: 100px;
+  height: 180px;
+  background: #e2edfc;
+  border-radius: 30px;
+  position: relative;
+  overflow: hidden;
+  border: 3px solid #cfe0fa;
+  box-shadow: inset 0 4px 12px rgba(46, 106, 246, 0.15);
+  touch-action: none;
+  cursor: ns-resize;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.water-liquid-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  border-radius: 0 0 26px 26px;
+  transition: height 0.15s ease-out;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.water-bubble-wave {
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  filter: blur(1px);
+}
+
+.water-slider-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.water-val-text {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.water-target-text {
+  font-size: 0.72rem;
+  color: #e0f2fe;
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+.water-controls {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.water-quick-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.water-quick-btn {
+  background: #edf5ff;
+  border: 1px solid #cce0ff;
+  color: #0284c7;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  transition: all 0.15s ease;
+}
+
+.water-quick-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.water-quick-btn.danger {
+  color: #ef4444;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.water-quick-btn.danger:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+.water-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* SET-BY-SET EXERCISE CARDS & STEPPERS */
+.exercise-card-set {
+  background: #fbfdff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.exercise-card-set.completed {
+  background: #f4fbf7;
+  border-color: #bbf7d0;
+}
+
+.ex-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ex-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ex-title {
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.ex-target-pill {
+  background: #edf3ff;
+  color: var(--primary);
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: 50px 1.1fr 1.1fr 36px 28px;
+  gap: 8px;
+  align-items: center;
+  background: #f1f5fc;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+
+.set-row.done-row {
+  background: #e8f7ee;
+}
+
+.set-label {
+  font-weight: 800;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.stepper-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+
+.step-btn {
+  background: #eaf0fa;
+  border: none;
+  color: var(--text);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.step-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.step-val {
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: var(--text);
+  padding: 0 4px;
+}
+
+.set-check {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--success);
+  cursor: pointer;
+}
+
+.btn-del-set {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.btn-del-set:hover {
+  color: var(--danger);
+}
+
+.ex-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+/* FLOATING REST COUNTDOWN TIMER BAR */
+.floating-rest-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111a2e;
+  color: #ffffff;
+  border: 1px solid #233454;
+  border-radius: 40px;
+  padding: 8px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 14px 34px rgba(11, 19, 41, 0.45);
+  z-index: 999;
+  backdrop-filter: blur(10px);
+  animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideUp {
+  from { transform: translateX(-50%) translateY(40px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+.rest-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rest-icon { font-size: 1.4rem; }
+
+.rest-title {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.rest-countdown {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #38bdf8;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.rest-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rest-action-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rest-action-btn:hover {
+  background: #334155;
+}
+
+.rest-action-btn.accent {
+  background: #10b981;
+  color: #0b1329;
+  border-color: #10b981;
+  font-weight: 800;
+}
+
+.rest-action-btn.danger {
+  color: #f43f5e;
+  border-color: rgba(244, 63, 94, 0.3);
+  background: rgba(244, 63, 94, 0.1);
+}
+
+/* TOAST ALERT */
+.toast-alert {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120px);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+  padding: 12px 22px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 10000;
+}
+
+.toast-alert.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast-icon { font-size: 1.5rem; }
+.toast-title { font-size: 0.92rem; font-weight: 800; color: #38bdf8; }
+.toast-sub { font-size: 0.76rem; color: #cbd5e1; }
+
+/* CHEATSHEET MULTIPLIERS */
+.multiplier-row {
+  display: flex;
+  background: #edf3ff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mult-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mult-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.badge-custom {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-left: 6px;
+}
+
+/* ONBOARDING WIZARD */
+.step-indicator {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 20px;
+}
+
+.step-dot {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  transition: background 0.25s ease;
+}
+
+.step-dot.active {
+  background: var(--primary);
+}
+
+.wizard-step-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.staples-chips-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.staple-chip-select {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: var(--muted);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.staple-chip-select.selected {
+  background: #eff6ff;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.wizard-splits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.split-preset-row {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* RESPONSIVE MEDIA QUERIES */
 @media (max-width: 980px) {
   .layout {
@@ -843,4 +1344,21 @@ button {
   .metrics-grid {
     grid-template-columns: 1fr;
   }
+
+  .water-widget-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .set-row {
+    grid-template-columns: 45px 1fr 1fr 30px 24px;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .floating-rest-bar {
+    width: 92%;
+    justify-content: space-between;
+  }
 }
+

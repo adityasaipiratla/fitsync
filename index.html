@@ -13,11 +13,34 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="FitSync" />
 
+  <!-- Canvas Confetti for PR & Workout celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
+  <!-- PRELOADED GENTLE ACOUSTIC HTML5 AUDIO -->
+  <audio id="sndRest" src="rest_chime.wav" preload="auto"></audio>
+  <audio id="sndWorkout" src="workout_complete.wav" preload="auto"></audio>
+  <audio id="sndApplause" src="gentle_applause.wav" preload="auto"></audio>
+
   <div class="app-shell">
+
+    <!-- 14-DAY LOCAL BACKUP REMINDER BANNER -->
+    <div class="backup-banner hidden" id="backupBanner">
+      <div class="backup-banner-content">
+        <span class="backup-icon">🛡️</span>
+        <div>
+          <strong>Local-First Safety Reminder:</strong>
+          <span>FitSync stores your health data 100% on this device. Export a JSON backup to keep your history safe.</span>
+        </div>
+      </div>
+      <div class="backup-banner-actions">
+        <button class="mini-button accent-btn" id="bannerExportBtn">📥 Export Backup</button>
+        <button class="mini-button" id="bannerDismissBtn">Dismiss</button>
+      </div>
+    </div>
     
     <!-- TOP NAVIGATION BAR -->
     <header class="topbar">
@@ -38,7 +61,8 @@
 
       <div class="header-actions">
         <span class="status-chip" id="modeChip">Cut mode</span>
-        <button class="mini-button" id="openSettingsButton">⚙️ Settings & Backup</button>
+        <button class="mini-button" id="runWizardTopbarBtn" title="Launch Setup Wizard">🚀 Setup</button>
+        <button class="mini-button" id="openSettingsButton">⚙️ Settings</button>
         <button class="primary-button" id="quickAddButton">+ Quick Log</button>
       </div>
     </header>
@@ -67,10 +91,46 @@
 
           <!-- MACRO & METRICS CARDS WITH PROGRESS BARS -->
           <div class="metrics-grid" id="metricsGrid">
-            <!-- Populated via app.js -->
+            <!-- Populated dynamically via app.js -->
           </div>
 
-          <!-- WORKOUT ROUTINE SECTION -->
+          <!-- HYDRATION & FLUID TRACKER (IOS-STYLE LIQUID SLIDER) -->
+          <section class="section-block hydration-block">
+            <div class="section-head">
+              <div>
+                <h2>💧 Daily Hydration & Water Tracker</h2>
+                <div class="card-subtext" id="waterMeta">Target: 3.0 Litres · Fluid bottle slider</div>
+              </div>
+              <div class="section-actions">
+                <span class="status-pill" id="waterStatusPill"><span class="dot"></span> 0.0 L</span>
+              </div>
+            </div>
+            
+            <div class="water-widget-container">
+              <div class="water-slider-container" id="waterSlider" title="Drag up or down to set water intake">
+                <div class="water-liquid-fill" id="waterFill" style="height: 0%;">
+                  <div class="water-bubble-wave"></div>
+                </div>
+                <div class="water-slider-text">
+                  <div class="water-val-text" id="waterLitresText">0.0 L</div>
+                  <div class="water-target-text" id="waterTargetText">Target: 3.0 L</div>
+                </div>
+              </div>
+              <div class="water-controls">
+                <div class="water-quick-buttons">
+                  <button class="water-quick-btn" id="addWater250Btn">+250ml Glass</button>
+                  <button class="water-quick-btn" id="addWater500Btn">+500ml Bottle</button>
+                  <button class="water-quick-btn" id="addWater750Btn">+750ml Shaker</button>
+                  <button class="water-quick-btn danger" id="resetWaterBtn">Reset (0L)</button>
+                </div>
+                <div class="water-hint">
+                  💡 <em>Drag vertically inside the blue capsule or tap quick presets to log water.</em>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- WORKOUT ROUTINE SECTION (SET-BY-SET LOGGING WITH STEPPERS) -->
           <section class="section-block">
             <div class="section-head">
               <div>
@@ -79,12 +139,14 @@
               </div>
               <div class="section-actions">
                 <span class="status-pill" id="workoutStatus"><span class="dot"></span> Ready</span>
+                <button class="mini-button" id="startManualRestBtn">⏱️ Rest (90s)</button>
+                <button class="mini-button" id="triggerPRCelebrationBtn">🏆 Log PR</button>
                 <button class="mini-button" id="selectSplitBtn">🔄 Switch Split</button>
                 <button class="mini-button" id="addExerciseBtn">+ Add Exercise</button>
               </div>
             </div>
 
-            <!-- EXERCISE LIST WITH CHECKBOXES & INPUTS -->
+            <!-- EXERCISE LIST WITH SET-BY-SET STEPPERS & AUTO-REST -->
             <div class="ex-list" id="exerciseList">
               <!-- Populated via app.js -->
             </div>
@@ -95,27 +157,29 @@
               <div class="recovery-grid">
                 <div class="field">
                   <label for="sorenessLog">Soreness (1-10)</label>
-                  <input type="number" id="sorenessLog" min="1" max="10" value="3" />
+                  <input type="number" id="sorenessLog" min="1" max="10" placeholder="e.g. 3" />
                 </div>
                 <div class="field">
                   <label for="moodLog">Mood / Energy</label>
                   <select id="moodLog">
+                    <option value="" selected>Select Mood...</option>
                     <option value="Great">Great / Energetic</option>
-                    <option value="Good" selected>Good / Normal</option>
+                    <option value="Good">Good / Normal</option>
                     <option value="Tired">Tired / Low Energy</option>
                   </select>
                 </div>
                 <div class="field">
                   <label for="jointLog">Knee / Joint Status</label>
                   <select id="jointLog">
-                    <option value="OK" selected>OK / Feels Good</option>
+                    <option value="" selected>Select Joint Status...</option>
+                    <option value="OK">OK / Feels Good</option>
                     <option value="Slight Soreness">Slight Soreness</option>
                     <option value="Needs Rest">Needs Rest</option>
                   </select>
                 </div>
                 <div class="field">
                   <label for="notesLog">Session Notes</label>
-                  <input type="text" id="notesLog" placeholder="e.g. 45 min home session" />
+                  <input type="text" id="notesLog" placeholder="e.g. Completed all sets, felt strong" />
                 </div>
               </div>
             </div>
@@ -150,10 +214,13 @@
 
         </div>
 
-        <!-- WEEKLY VIEW PANEL -->
+        <!-- WEEKLY VIEW PANEL (REAL ADHERENCE DATA & CHARTS) -->
         <div class="view-panel hidden" id="weeklyView">
           <div class="section-head">
-            <h2>📈 Weekly Adherence & Trends</h2>
+            <div>
+              <h2>📈 7-Day Adherence & Macro Compliance</h2>
+              <div class="card-subtext">Calculated dynamically from your actual logged history</div>
+            </div>
           </div>
           <div id="weeklyMetrics" class="weekly-stats-list"></div>
           <div class="card mt-16" id="weeklySummary"></div>
@@ -162,7 +229,10 @@
         <!-- HISTORY VIEW PANEL -->
         <div class="view-panel hidden" id="historyView">
           <div class="section-head">
-            <h2>📜 Historical Daily Logs</h2>
+            <div>
+              <h2>📜 Historical Daily Logs</h2>
+              <div class="card-subtext">All archived sessions stored privately in localStorage</div>
+            </div>
           </div>
           <div id="historyList" class="history-container"></div>
         </div>
@@ -170,7 +240,10 @@
         <!-- TEMPLATES VIEW PANEL -->
         <div class="view-panel hidden" id="templatesView">
           <div class="section-head">
-            <h2>📋 Routine Templates & Workout Split Cards</h2>
+            <div>
+              <h2>📋 Routine Templates & Workout Split Cards</h2>
+              <div class="card-subtext">Click any split routine below to load it into today's session</div>
+            </div>
           </div>
           <div id="templatesList" class="templates-grid"></div>
         </div>
@@ -198,7 +271,7 @@
 
         <!-- SIDEBAR QUICK TEMPLATES -->
         <div class="side-panel panel">
-          <div class="muted-label small compact">QUICK TEMPLATES</div>
+          <div class="muted-label small compact">QUICK SPLIT SWITCHER</div>
           <div class="template-list" id="templateList">
             <!-- Populated via app.js -->
           </div>
@@ -206,13 +279,39 @@
 
         <!-- PRIVACY & STORAGE NOTE -->
         <div class="privacy-note">
-          🔒 <strong>Local-First Storage:</strong> Your data is stored on your device in browser <code>localStorage</code>. No external server tracking. Export JSON backup anytime in settings.
+          🔒 <strong>Local-First Storage:</strong> Your fitness data never leaves your device. Stored locally in <code>localStorage</code>. Export JSON backup anytime in settings.
         </div>
 
       </aside>
 
     </div>
 
+  </div>
+
+  <!-- FLOATING REST COUNTDOWN TIMER BAR -->
+  <aside class="floating-rest-bar hidden" id="floatingRestBar" aria-label="Rest Countdown Timer">
+    <div class="rest-bar-info">
+      <span class="rest-icon">⏱️</span>
+      <div>
+        <div class="rest-title">Rest Interval</div>
+        <div class="rest-countdown" id="restTimerDisplay">01:30</div>
+      </div>
+    </div>
+    <div class="rest-bar-actions">
+      <button class="rest-action-btn" id="restAdd30Btn">+30s</button>
+      <button class="rest-action-btn" id="restTest3sBtn">Test 3s</button>
+      <button class="rest-action-btn accent" id="restDoneBtn">Ready / Skip</button>
+      <button class="rest-action-btn danger" id="restCancelBtn">✕</button>
+    </div>
+  </aside>
+
+  <!-- TOAST ALERT NOTIFICATION -->
+  <div class="toast-alert" id="prToast" role="alert" aria-live="polite">
+    <span class="toast-icon" id="toastIcon">👏</span>
+    <div>
+      <div class="toast-title" id="toastTitle">NEW PERSONAL RECORD!</div>
+      <div class="toast-sub" id="toastSub">Pull-ups: 7 reps (+1 rep increase)</div>
+    </div>
   </div>
 
   <!-- ENTRY MODAL (ADD MEAL / WORKOUT) -->
@@ -246,7 +345,7 @@
 
         <div class="field">
           <label for="entryProtein">Protein (grams)</label>
-          <input type="number" id="entryProtein" placeholder="e.g. 12" />
+          <input type="number" step="0.1" id="entryProtein" placeholder="e.g. 12" />
         </div>
 
         <div class="field">
@@ -265,20 +364,24 @@
   <div class="modal" id="exerciseModal" aria-hidden="true">
     <div class="modal-card">
       <div class="modal-head">
-        <h3>Add Exercise</h3>
+        <h3>Add Exercise to Session</h3>
       </div>
       <div class="field-grid">
         <div class="field">
           <label for="customExName">Exercise Name</label>
-          <input type="text" id="customExName" placeholder="e.g. Dumbbell Bicep Curls" />
+          <input type="text" id="customExName" placeholder="e.g. Dumbbell Incline Bench" />
         </div>
         <div class="field">
-          <label for="customExSetsReps">Sets & Reps</label>
-          <input type="text" id="customExSetsReps" value="3x10" placeholder="e.g. 3x8-10" />
+          <label for="customExSets">Number of Sets</label>
+          <input type="number" id="customExSets" value="3" min="1" max="10" />
         </div>
         <div class="field">
-          <label for="customExWeight">Weight / Resistance</label>
-          <input type="text" id="customExWeight" value="12.5kg" placeholder="e.g. 12.5kg or BW" />
+          <label for="customExWeight">Default Weight (kg)</label>
+          <input type="number" step="0.5" id="customExWeight" value="12.5" />
+        </div>
+        <div class="field">
+          <label for="customExReps">Default Reps per Set</label>
+          <input type="number" id="customExReps" value="10" min="1" max="100" />
         </div>
       </div>
       <div class="modal-actions">
@@ -288,12 +391,18 @@
     </div>
   </div>
 
-  <!-- CHEATSHEET DRAWER MODAL -->
+  <!-- CHEATSHEET DRAWER MODAL WITH MULTIPLIERS & CUSTOM FOOD CREATOR -->
   <div class="modal" id="cheatsheetModal" aria-hidden="true">
     <div class="modal-card modal-large">
       <div class="modal-head flex-between">
-        <h3>📖 Vegetarian Calorie & Protein Cheatsheet</h3>
-        <button class="mini-button" id="closeCheatsheetModalBtn">Close</button>
+        <div>
+          <h3>📖 Vegetarian Calorie & Protein Cheatsheet</h3>
+          <div class="card-subtext">Base 1x / 100g portions with quick multipliers & custom food additions</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="mini-button accent-btn" id="openAddCustomFoodModalBtn">➕ Add Food</button>
+          <button class="mini-button" id="closeCheatsheetModalBtn">Close</button>
+        </div>
       </div>
       
       <div class="field mb-12">
@@ -306,11 +415,171 @@
         <button class="cat-pill" data-cat="curries">Curries & Rotis</button>
         <button class="cat-pill" data-cat="meals">Pre-made Meals</button>
         <button class="cat-pill" data-cat="snacks">Snacks & Fruits</button>
+        <button class="cat-pill" data-cat="custom">My Custom Foods</button>
       </div>
 
       <div class="cheat-grid" id="cheatListGrid">
         <!-- Populated via app.js -->
       </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT CUSTOM CHEATSHEET FOOD MODAL -->
+  <div class="modal" id="customFoodModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="customFoodModalTitle">Add Custom Food to Cheatsheet</h3>
+      </div>
+      <div class="field-grid">
+        <input type="hidden" id="cfEditId" value="" />
+        <div class="field">
+          <label for="cfName">Food / Dish Name</label>
+          <input type="text" id="cfName" placeholder="e.g. Soya Chunks Bhurji" />
+        </div>
+        <div class="field">
+          <label for="cfCategory">Category</label>
+          <select id="cfCategory">
+            <option value="dairy">Dairy & Whey</option>
+            <option value="curries">Curries & Rotis</option>
+            <option value="meals">Pre-made Meals</option>
+            <option value="snacks" selected>Snacks & Fruits</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cfPortion">Base Serving Unit Description</label>
+          <input type="text" id="cfPortion" placeholder="e.g. 100g base or 1 bowl" />
+        </div>
+        <div class="field">
+          <label for="cfGrams">Base Weight (grams)</label>
+          <input type="number" id="cfGrams" value="100" />
+        </div>
+        <div class="field">
+          <label for="cfCalories">Calories (kcal per base)</label>
+          <input type="number" id="cfCalories" placeholder="e.g. 150" />
+        </div>
+        <div class="field">
+          <label for="cfProtein">Protein (grams per base)</label>
+          <input type="number" step="0.1" id="cfProtein" placeholder="e.g. 12" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-button" id="cancelCustomFoodBtn">Cancel</button>
+        <button class="primary-button" id="saveCustomFoodBtn">Save to Cheatsheet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPREHENSIVE 4-STEP ONBOARDING WIZARD MODAL -->
+  <div class="modal" id="onboardingModal" aria-hidden="true">
+    <div class="modal-card modal-large">
+      <div class="modal-head flex-between">
+        <div>
+          <div class="eyebrow">Personal Setup</div>
+          <h3 id="wizardHeadTitle">🚀 FitSync Personalized Onboarding</h3>
+        </div>
+        <button class="mini-button" id="closeOnboardingBtn">✕</button>
+      </div>
+
+      <div class="step-indicator">
+        <div class="step-dot active" id="wizDot1"></div>
+        <div class="step-dot" id="wizDot2"></div>
+        <div class="step-dot" id="wizDot3"></div>
+        <div class="step-dot" id="wizDot4"></div>
+      </div>
+
+      <!-- STEP 1: CUT TARGETS -->
+      <div class="wizard-step-pane" id="wizStep1">
+        <h4 style="font-size: 1.1rem; margin-bottom: 4px;">Step 1 of 4: Your Bodyweight & Cutting Targets</h4>
+        <p class="card-subtext mb-12">Personalize your calorie deficit and protein target for lean cutting.</p>
+        
+        <div class="field-grid">
+          <div class="field">
+            <label for="wizWeightInput">Starting Body Weight (kg)</label>
+            <input type="number" id="wizWeightInput" step="0.1" value="70.0" />
+          </div>
+          <div class="field">
+            <label for="wizCalInput">Daily Target Calories (kcal)</label>
+            <input type="number" id="wizCalInput" value="1700" />
+          </div>
+          <div class="field">
+            <label for="wizProteinInput">Daily Target Protein (g)</label>
+            <input type="number" id="wizProteinInput" value="130" />
+          </div>
+        </div>
+
+        <div class="modal-actions" style="justify-content: flex-end; margin-top: 18px;">
+          <button class="primary-button" id="wizNext1Btn">Next: Hydration & Audio ➔</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: HYDRATION & SOUND -->
+      <div class="wizard-step-pane hidden" id="wizStep2">
+        <h4 style="font-size: 1.1rem; margin-bottom: 4px;">Step 2 of 4: Daily Hydration & Rest Sound Style</h4>
+        <p class="card-subtext mb-12">Configure your daily water intake target and zero-cortisol rest chimes.</p>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="wizWaterInput">Daily Water Goal</label>
+            <select id="wizWaterInput">
+              <option value="2.5">2.5 Litres</option>
+              <option value="3.0" selected>3.0 Litres (Recommended)</option>
+              <option value="3.5">3.5 Litres</option>
+              <option value="4.0">4.0 Litres</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="wizRestInput">Default Rest Timer</label>
+            <select id="wizRestInput">
+              <option value="60">60 seconds</option>
+              <option value="90" selected>90 seconds (Standard)</option>
+              <option value="120">120 seconds (Heavy / Compound)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="wizAudioInput">Sound Style</label>
+            <select id="wizAudioInput">
+              <option value="gentle" selected>🌱 Gentle Marimba & Soft Claps (Zero Cortisol)</option>
+              <option value="silent">📳 Silent / Toast Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 18px;">
+          <button class="secondary-button" id="wizBack2Btn">⬅ Back</button>
+          <button class="primary-button" id="wizNext2Btn">Next: Dietary Staples ➔</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: DIETARY STAPLES -->
+      <div class="wizard-step-pane hidden" id="wizStep3">
+        <h4 style="font-size: 1.1rem; margin-bottom: 4px;">Step 3 of 4: Select Your Favorite Diet Staples</h4>
+        <p class="card-subtext mb-12">Tap staples to pin as 1-tap quick buttons on your Today dashboard:</p>
+
+        <div class="staples-chips-picker" id="wizStaplesPicker">
+          <!-- Populated via app.js -->
+        </div>
+
+        <div class="modal-actions" style="margin-top: 18px;">
+          <button class="secondary-button" id="wizBack3Btn">⬅ Back</button>
+          <button class="primary-button" id="wizNext3Btn">Next: Workout Split ➔</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: WORKOUT SPLIT RITE OF PASSAGE -->
+      <div class="wizard-step-pane hidden" id="wizStep4">
+        <h4 style="font-size: 1.1rem; margin-bottom: 4px;">Step 4 of 4: The 4-Day Workout Split Rite of Passage</h4>
+        <p class="card-subtext mb-12">Review your 4-day dumbbell split cards. Confirm to begin your clean journey.</p>
+
+        <div class="wizard-splits-list" id="wizSplitsList">
+          <!-- Populated via app.js -->
+        </div>
+
+        <div class="modal-actions" style="margin-top: 18px;">
+          <button class="secondary-button" id="wizBack4Btn">⬅ Back</button>
+          <button class="primary-button accent-btn" id="wizCompleteBtn">🚀 Complete Setup & Launch!</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -336,6 +605,16 @@
           <input type="number" step="0.1" id="targetWeightInput" value="70.0" />
         </div>
 
+        <div class="field">
+          <label for="targetWaterInput">Daily Water Goal (Litres)</label>
+          <input type="number" step="0.1" id="targetWaterInput" value="3.0" />
+        </div>
+
+        <div class="field">
+          <label for="defaultRestSecInput">Default Rest Seconds</label>
+          <input type="number" id="defaultRestSecInput" value="90" />
+        </div>
+
         <!-- LAN ACCESS HELPER BOX -->
         <div class="lan-helper-box">
           <div class="lan-title">📱 Phone / iPad Access on Home Wi-Fi</div>
@@ -348,8 +627,10 @@
         </div>
 
         <hr class="divider" />
-        <div class="muted-label small">DATA MANAGEMENT (LOCAL BACKUP)</div>
+        <div class="muted-label small">ONBOARDING & SETUP</div>
+        <button class="secondary-button width-full mb-12" id="rerunWizardBtn">🚀 Re-run Onboarding Setup Wizard</button>
 
+        <div class="muted-label small">DATA MANAGEMENT (LOCAL BACKUP)</div>
         <button class="secondary-button width-full" id="exportBackupBtn">📥 Export Data (JSON Backup)</button>
         
         <div class="file-import-wrap">
