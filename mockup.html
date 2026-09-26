@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fitness Journal</title>
+    <style>
+      :root {
+        --bg: #f5f8ff;
+        --panel: #ffffff;
+        --panel-soft: #eef4ff;
+        --primary: #2d6df6;
+        --secondary: #00b894;
+        --text: #1d2433;
+        --muted: #6a7892;
+        --line: #e9edf5;
+        --success: #1fbf75;
+        --warning: #f6b84c;
+        --shadow: 0 12px 28px rgba(20, 34, 60, 0.08);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #f7f9fc 0%, #eef4fb 100%);
+        color: var(--text);
+      }
+      button, input {
+        font: inherit;
+      }
+      .app {
+        max-width: 1240px;
+        margin: 30px auto;
+        padding: 20px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(255,255,255,0.9);
+        border: 1px solid rgba(255,255,255,0.9);
+        border-radius: 20px;
+        padding: 14px 18px;
+        box-shadow: var(--shadow);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--primary), #7aa4ff);
+        display: grid;
+        place-items: center;
+        color: white;
+        font-weight: 800;
+      }
+      .nav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .nav-item {
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-weight: 700;
+        color: var(--muted);
+        border: 1px solid transparent;
+      }
+      .nav-item.active {
+        background: var(--panel-soft);
+        color: var(--primary);
+        border-color: #dfeafc;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .chip {
+        background: var(--panel-soft);
+        color: var(--primary);
+        border: 1px solid #dfeafc;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .button {
+        border: none;
+        background: linear-gradient(135deg, var(--primary), #6e93ff);
+        color: white;
+        border-radius: 12px;
+        padding: 11px 16px;
+        font-weight: 700;
+        box-shadow: 0 12px 20px rgba(45,109,246,0.18);
+        cursor: pointer;
+      }
+      .button.secondary {
+        background: #eef3ff;
+        color: var(--primary);
+        box-shadow: none;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1.5fr 0.8fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+      .panel {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+      .main-panel {
+        padding: 20px;
+      }
+      .date-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        gap: 12px;
+      }
+      .date-row h1 {
+        margin: 6px 0 0;
+        font-size: 2rem;
+      }
+      .sub {
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .metric {
+        background: linear-gradient(180deg, #f9fbff 0%, #f2f7ff 100%);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+      }
+      .metric .label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: var(--muted);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .metric .value {
+        margin-top: 12px;
+        font-size: 1.9rem;
+        font-weight: 800;
+      }
+      .metric .delta {
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .section {
+        margin-top: 24px;
+      }
+      .section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .section-head h3 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+      .card {
+        background: #fbfcff;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 16px;
+      }
+      .lead {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .meal-name {
+        font-weight: 800;
+      }
+      .meal-meta {
+        color: var(--muted);
+        font-size: 0.78rem;
+        margin-top: 4px;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #edfef5;
+        color: var(--success);
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+      .meal-list {
+        display: grid;
+        gap: 12px;
+      }
+      .meal-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+      .pill {
+        background: #edf5ff;
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 7px 10px;
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+      .sidebar {
+        display: grid;
+        gap: 18px;
+      }
+      .side-panel {
+        padding: 18px;
+      }
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .week-col {
+        text-align: center;
+      }
+      .bar {
+        height: 88px;
+        border-radius: 12px 12px 8px 8px;
+        background: linear-gradient(180deg, #8bb7ff 0%, var(--primary) 100%);
+        margin-bottom: 8px;
+      }
+      .bar.alt {
+        background: linear-gradient(180deg, #90e4c0 0%, var(--secondary) 100%);
+      }
+      .day-name {
+        font-size: 0.7rem;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .summary-row:last-child {
+        border-bottom: none;
+      }
+      .template-list {
+        display: grid;
+        gap: 10px;
+      }
+      .template-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid var(--line);
+        background: #f9fbff;
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+      }
+      .template-item:hover {
+        border-color: #ccd9ff;
+      }
+      .notice {
+        margin-top: 10px;
+        font-size: 0.72rem;
+        line-height: 1.5;
+        color: var(--muted);
+        background: #f9faff;
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        padding: 8px 10px;
+      }
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 22, 38, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+      }
+      .modal.show {
+        display: flex;
+      }
+      .modal-content {
+        width: min(460px, 100%);
+        background: white;
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+        padding: 20px;
+      }
+      .modal-content h3 {
+        margin: 0 0 16px;
+      }
+      .field-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .field input {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fff;
+        padding: 10px 12px;
+      }
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      @media (max-width: 980px) {
+        .layout { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 640px) {
+        .app { padding: 12px; }
+        .topbar { display: block; }
+        .nav { margin: 12px 0; }
+        .actions { margin-top: 12px; }
+        .metrics { grid-template-columns: 1fr; }
+        .date-row { display: block; }
+        .lead { display: block; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">F</div>
+          <div><strong>Fitness Journal</strong></div>
+        </div>
+
+        <nav class="nav">
+          <div class="nav-item active">Today</div>
+          <div class="nav-item">Weekly</div>
+          <div class="nav-item">History</div>
+          <div class="nav-item">Templates</div>
+          <div class="nav-item">Settings</div>
+        </nav>
+
+        <div class="actions">
+          <div class="chip" id="modeChip">Cut mode</div>
+          <button class="button" id="saveButton">Save</button>
+        </div>
+      </header>
+
+      <div class="layout">
+        <main class="panel main-panel">
+          <div class="date-row">
+            <div>
+              <div class="sub" id="weekdayLabel">Sunday</div>
+              <h1 id="dateLabel">13 Sep 2026</h1>
+            </div>
+            <button class="button" id="quickAddButton">+ Quick add</button>
+          </div>
+
+          <div class="metrics" id="metrics"></div>
+
+          <div class="section">
+            <div class="section-head">
+              <h3>Workout</h3>
+              <button class="chip" id="addWorkoutButton">+ Add workout</button>
+            </div>
+
+            <div class="card">
+              <div class="lead">
+                <div>
+                  <div class="meal-name" id="workoutName">Walk + Pull-up Block</div>
+                  <div class="meal-meta" id="workoutMeta">40 min · moderate · home route</div>
+                </div>
+                <div class="status" id="workoutStatus"><span class="status-dot"></span> On track</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-head">
+              <h3>Meals</h3>
+              <button class="chip" id="addMealButton">+ Add food</button>
+            </div>
+            <div class="meal-list" id="mealList"></div>
+          </div>
+        </main>
+
+        <aside class="sidebar">
+          <div class="panel side-panel">
+            <div class="section-head">
+              <h3>Weekly trend</h3>
+              <span class="sub" style="font-size:0.78rem;">Last 7 days</span>
+            </div>
+            <div class="week" id="weekBars"></div>
+          </div>
+
+          <div class="panel side-panel">
+            <div class="section-head">
+              <h3>Quick summary</h3>
+            </div>
+            <div id="quickSummary"></div>
+          </div>
+
+          <div class="panel side-panel">
+            <div class="section-head">
+              <h3>Templates</h3>
+              <span class="sub" style="font-size:0.78rem;">Saved</span>
+            </div>
+            <div class="template-list" id="templateList"></div>
+            <div class="notice">
+              Prototype storage: this dashboard saves in the current browser on this device. Real cross-device Apple sync would require a hosted web app or Apple CloudKit backend.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="modal" id="entryModal" aria-hidden="true">
+      <div class="modal-content">
+        <h3 id="modalTitle">Quick add</h3>
+        <div class="field-grid">
+          <label class="field">
+            Type
+            <select id="entryType">
+              <option value="meal">Meal</option>
+              <option value="workout">Workout</option>
+            </select>
+          </label>
+
+          <label class="field">
+            Name
+            <input id="entryName" type="text" placeholder="e.g. Breakfast, Pull-up block" />
+          </label>
+
+          <label class="field">
+            Calories
+            <input id="entryCalories" type="number" min="0" step="10" placeholder="0" />
+          </label>
+
+          <label class="field">
+            Protein (g)
+            <input id="entryProtein" type="number" min="0" step="1" placeholder="0" />
+          </label>
+
+          <label class="field">
+            Notes / route / duration
+            <input id="entryMeta" type="text" placeholder="e.g. 40 min · home route, protein curd + oats" />
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button secondary" id="cancelEntryButton">Cancel</button>
+          <button class="button" id="saveEntryButton">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'fitness-journal-browser-storage-v1';
+
+      const defaultState = {
+        mode: 'Cut mode',
+        calories: 1620,
+        protein: 128,
+        targetCalories: 1700,
+        targetProtein: 130,
+        weightKg: 71.2,
+        workout: {
+          name: 'Walk + Pull-up Block',
+          meta: '40 min · moderate · home route',
+          status: 'On track'
+        },
+        meals: [
+          { name: 'Breakfast', meta: 'Protein curd + oats + pomegranate', calories: 420, protein: 32 },
+          { name: 'Lunch', meta: '3 phulkas + chana curry', calories: 520, protein: 28 },
+          { name: 'Snack', meta: 'Carrots + whey + water', calories: 260, protein: 32 },
+          { name: 'Dinner', meta: 'Egg omelette + roasted makhana', calories: 410, protein: 36 }
+        ],
+        templates: [
+          { name: 'Cut day', value: '1,700 kcal' },
+          { name: 'High protein', value: '130g protein' },
+          { name: 'Pull-up day', value: '40m workout' },
+          { name: 'Leg day', value: 'Home session' }
+        ],
+        weekly: [52, 68, 58, 80, 71, 88, 74]
+      };
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return structuredClone(defaultState);
+          const parsed = JSON.parse(raw);
+          return { ...structuredClone(defaultState), ...parsed, meals: parsed.meals || defaultState.meals, templates: parsed.templates || defaultState.templates, workout: parsed.workout || defaultState.workout, weekly: parsed.weekly || defaultState.weekly };
+        } catch (error) {
+          return structuredClone(defaultState);
+        }
+      }
+
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function formatDate(date = new Date()) {
+        return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+      }
+
+      function formatWeekday(date = new Date()) {
+        return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date);
+      }
+
+      function renderMetrics() {
+        const diffCalories = state.targetCalories - state.calories;
+        const diffProtein = state.targetProtein - state.protein;
+
+        const items = [
+          { label: 'Calories', value: `${state.calories.toLocaleString()}`, delta: `Target ${state.targetCalories.toLocaleString()} · ${diffCalories >= 0 ? '-' : '+'}${Math.abs(diffCalories)}` },
+          { label: 'Protein', value: `${state.protein}g`, delta: `Target ${state.targetProtein}g · ${diffProtein >= 0 ? '98%' : 'Below target'}` },
+          { label: 'Weight', value: `${state.weightKg}kg`, delta: '-0.3kg this week' }
+        ];
+
+        const metrics = document.getElementById('metrics');
+        metrics.innerHTML = items.map(item => `
+          <div class="metric">
+            <div class="label">${item.label}</div>
+            <div class="value">${item.value}</div>
+            <div class="delta">${item.delta}</div>
+          </div>
+        `).join('');
+      }
+
+      function renderMealList() {
+        const list = document.getElementById('mealList');
+        list.innerHTML = state.meals.map(item => `
+          <div class="meal-item">
+            <div>
+              <div class="meal-name">${item.name}</div>
+              <div class="meal-meta">${item.meta}</div>
+            </div>
+            <div class="pill">${item.calories} kcal • ${item.protein}g</div>
+          </div>
+        `).join('');
+      }
+
+      function renderQuickSummary() {
+        const summary = document.getElementById('quickSummary');
+        summary.innerHTML = `
+          <div class="summary-row"><span>Workout days</span><strong>5/7</strong></div>
+          <div class="summary-row"><span>Walk minutes</span><strong>240</strong></div>
+          <div class="summary-row"><span>Protein target</span><strong>${Math.round((state.protein / state.targetProtein) * 100)}%</strong></div>
+          <div class="summary-row"><span>Weight</span><strong>${state.weightKg} kg</strong></div>
+        `;
+      }
+
+      function renderTemplates() {
+        const templates = document.getElementById('templateList');
+        templates.innerHTML = state.templates.map((template, index) => `
+          <div class="template-item" data-index="${index}">
+            <span>${template.name}</span>
+            <span class="pill">${template.value}</span>
+          </div>
+        `).join('');
+
+        templates.querySelectorAll('.template-item').forEach((node) => {
+          node.addEventListener('click', () => {
+            const index = Number(node.dataset.index);
+            const template = state.templates[index];
+            applyTemplate(template);
+          });
+        });
+      }
+
+      function applyTemplate(template) {
+        if (template.name === 'Cut day') {
+          state.targetCalories = 1700;
+          state.targetProtein = 130;
+          state.mode = 'Cut mode';
+        }
+        if (template.name === 'High protein') {
+          state.targetProtein = 130;
+          state.mode = 'High protein';
+        }
+        if (template.name === 'Pull-up day') {
+          state.workout = { name: 'Pull-up + mobility', meta: '40 min · bodyweight + bands · home gym', status: 'Ready' };
+        }
+        if (template.name === 'Leg day') {
+          state.workout = { name: 'Leg day circuit', meta: '35 min · goblet squat + deadlift · home', status: 'Ready' };
+        }
+        saveState();
+        render();
+      }
+
+      function renderWeekBars() {
+        const week = document.getElementById('weekBars');
+        week.innerHTML = state.weekly.map((value, idx) => {
+          const alt = idx % 2 === 1 ? 'alt' : '';
+          return `
+            <div class="week-col">
+              <div class="bar ${alt}" style="height: ${value}%"></div>
+              <div class="day-name">${['M','T','W','T','F','S','S'][idx]}</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderWorkout() {
+        document.getElementById('workoutName').textContent = state.workout.name;
+        document.getElementById('workoutMeta').textContent = state.workout.meta;
+        document.getElementById('workoutStatus').innerHTML = `<span class="status-dot"></span> ${state.workout.status}`;
+      }
+
+      function renderHeader() {
+        const today = new Date();
+        document.getElementById('dateLabel').textContent = formatDate(today);
+        document.getElementById('weekdayLabel').textContent = formatWeekday(today);
+        document.getElementById('modeChip').textContent = state.mode;
+      }
+
+      function render() {
+        renderHeader();
+        renderMetrics();
+        renderMealList();
+        renderQuickSummary();
+        renderTemplates();
+        renderWeekBars();
+        renderWorkout();
+      }
+
+      function openModal(type = 'meal') {
+        const modal = document.getElementById('entryModal');
+        document.getElementById('entryType').value = type;
+        document.getElementById('modalTitle').textContent = type === 'meal' ? 'Add food' : 'Add workout';
+        modal.classList.add('show');
+        modal.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeModal() {
+        const modal = document.getElementById('entryModal');
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+        document.getElementById('entryName').value = '';
+        document.getElementById('entryCalories').value = '';
+        document.getElementById('entryProtein').value = '';
+        document.getElementById('entryMeta').value = '';
+      }
+
+      function addEntry() {
+        const type = document.getElementById('entryType').value;
+        const name = document.getElementById('entryName').value.trim();
+        const calories = Number(document.getElementById('entryCalories').value || 0);
+        const protein = Number(document.getElementById('entryProtein').value || 0);
+        const meta = document.getElementById('entryMeta').value.trim();
+
+        if (!name) return;
+
+        if (type === 'meal') {
+          state.meals.unshift({
+            name,
+            meta: meta || 'Custom entry',
+            calories,
+            protein
+          });
+        } else {
+          state.workout = {
+            name,
+            meta: meta || 'Custom workout entry',
+            status: 'Updated'
+          };
+        }
+
+        saveState();
+        render();
+        closeModal();
+      }
+
+      let state = loadState();
+
+      document.getElementById('saveButton').addEventListener('click', saveState);
+      document.getElementById('quickAddButton').addEventListener('click', () => openModal('meal'));
+      document.getElementById('addMealButton').addEventListener('click', () => openModal('meal'));
+      document.getElementById('addWorkoutButton').addEventListener('click', () => openModal('workout'));
+      document.getElementById('saveEntryButton').addEventListener('click', addEntry);
+      document.getElementById('cancelEntryButton').addEventListener('click', closeModal);
+      document.getElementById('entryModal').addEventListener('click', (event) => {
+        if (event.target.id === 'entryModal') closeModal();
+      });
+
+      render();
+    </script>
+  </body>
+</html>

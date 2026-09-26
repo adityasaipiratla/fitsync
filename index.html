@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FitSync — Personal Fitness & Nutrition Dashboard</title>
+
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2e6af6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FitSync" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="app-shell">
+    
+    <!-- TOP NAVIGATION BAR -->
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark">⚡</div>
+        <div>
+          <div class="eyebrow">Personal Dashboard</div>
+          <div class="brand-name">FitSync</div>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Dashboard Navigation">
+        <button class="nav-pill active" data-tab="today">Today</button>
+        <button class="nav-pill" data-tab="weekly">Weekly Trends</button>
+        <button class="nav-pill" data-tab="history">History Log</button>
+        <button class="nav-pill" data-tab="templates">Routines & Presets</button>
+      </nav>
+
+      <div class="header-actions">
+        <span class="status-chip" id="modeChip">Cut mode</span>
+        <button class="mini-button" id="openSettingsButton">⚙️ Settings & Backup</button>
+        <button class="primary-button" id="quickAddButton">+ Quick Log</button>
+      </div>
+    </header>
+
+    <!-- MAIN TWO-COLUMN LAYOUT -->
+    <div class="layout">
+
+      <!-- LEFT / MAIN VIEW CONTAINER -->
+      <main class="primary-panel panel">
+
+        <!-- TODAY VIEW PANEL -->
+        <div class="view-panel" id="todayView">
+          
+          <!-- DATE SELECTOR BAR -->
+          <div class="date-row">
+            <div>
+              <div class="muted-label small" id="weekdayLabel">Sunday</div>
+              <h1 id="dateLabel">Today</h1>
+            </div>
+            <div class="date-controls">
+              <button class="mini-button" id="prevDayBtn">◄ Prev</button>
+              <button class="mini-button" id="todayBtn">Today</button>
+              <button class="mini-button" id="nextDayBtn">Next ►</button>
+            </div>
+          </div>
+
+          <!-- MACRO & METRICS CARDS WITH PROGRESS BARS -->
+          <div class="metrics-grid" id="metricsGrid">
+            <!-- Populated via app.js -->
+          </div>
+
+          <!-- WORKOUT ROUTINE SECTION -->
+          <section class="section-block">
+            <div class="section-head">
+              <div>
+                <h2>💪 Daily Workout Routine</h2>
+                <div class="card-subtext" id="workoutMeta">Upper Body + Pull-ups</div>
+              </div>
+              <div class="section-actions">
+                <span class="status-pill" id="workoutStatus"><span class="dot"></span> Ready</span>
+                <button class="mini-button" id="selectSplitBtn">🔄 Switch Split</button>
+                <button class="mini-button" id="addExerciseBtn">+ Add Exercise</button>
+              </div>
+            </div>
+
+            <!-- EXERCISE LIST WITH CHECKBOXES & INPUTS -->
+            <div class="ex-list" id="exerciseList">
+              <!-- Populated via app.js -->
+            </div>
+
+            <!-- POST-WORKOUT RECOVERY LOG -->
+            <div class="recovery-box">
+              <h3 class="sub-head">📊 Post-Workout Recovery Log</h3>
+              <div class="recovery-grid">
+                <div class="field">
+                  <label for="sorenessLog">Soreness (1-10)</label>
+                  <input type="number" id="sorenessLog" min="1" max="10" value="3" />
+                </div>
+                <div class="field">
+                  <label for="moodLog">Mood / Energy</label>
+                  <select id="moodLog">
+                    <option value="Great">Great / Energetic</option>
+                    <option value="Good" selected>Good / Normal</option>
+                    <option value="Tired">Tired / Low Energy</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="jointLog">Knee / Joint Status</label>
+                  <select id="jointLog">
+                    <option value="OK" selected>OK / Feels Good</option>
+                    <option value="Slight Soreness">Slight Soreness</option>
+                    <option value="Needs Rest">Needs Rest</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="notesLog">Session Notes</label>
+                  <input type="text" id="notesLog" placeholder="e.g. 45 min home session" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- MEALS & NUTRITION SECTION -->
+          <section class="section-block">
+            <div class="section-head">
+              <div>
+                <h2>🥗 Daily Meals & Food Log</h2>
+                <div class="card-subtext">High-protein vegetarian cut focus</div>
+              </div>
+              <div class="section-actions">
+                <button class="mini-button accent-btn" id="openCheatsheetDrawerBtn">📖 Cheatsheet Drawer</button>
+                <button class="mini-button" id="addMealButton">+ Custom Food</button>
+              </div>
+            </div>
+
+            <!-- QUICK ADD VEGETARIAN STAPLES CHIPS -->
+            <div class="presets-section">
+              <div class="muted-label small mb-4">QUICK ADD STAPLES:</div>
+              <div class="presets-wrap" id="quickStaplesWrap">
+                <!-- Populated via app.js -->
+              </div>
+            </div>
+
+            <!-- MEAL ITEMS LIST -->
+            <div class="meal-list" id="mealList">
+              <!-- Populated via app.js -->
+            </div>
+          </section>
+
+        </div>
+
+        <!-- WEEKLY VIEW PANEL -->
+        <div class="view-panel hidden" id="weeklyView">
+          <div class="section-head">
+            <h2>📈 Weekly Adherence & Trends</h2>
+          </div>
+          <div id="weeklyMetrics" class="weekly-stats-list"></div>
+          <div class="card mt-16" id="weeklySummary"></div>
+        </div>
+
+        <!-- HISTORY VIEW PANEL -->
+        <div class="view-panel hidden" id="historyView">
+          <div class="section-head">
+            <h2>📜 Historical Daily Logs</h2>
+          </div>
+          <div id="historyList" class="history-container"></div>
+        </div>
+
+        <!-- TEMPLATES VIEW PANEL -->
+        <div class="view-panel hidden" id="templatesView">
+          <div class="section-head">
+            <h2>📋 Routine Templates & Workout Split Cards</h2>
+          </div>
+          <div id="templatesList" class="templates-grid"></div>
+        </div>
+
+      </main>
+
+      <!-- RIGHT SIDEBAR PANEL -->
+      <aside class="side-column" id="todaySidebar">
+        
+        <!-- SIDEBAR WEEKLY MINI CHART -->
+        <div class="side-panel panel">
+          <div class="muted-label small compact">WEEKLY ADHERENCE</div>
+          <div class="week-grid" id="weekChart">
+            <!-- Populated via app.js -->
+          </div>
+        </div>
+
+        <!-- SIDEBAR NUTRITION SUMMARY -->
+        <div class="side-panel panel">
+          <div class="muted-label small compact">DAY NUTRITION SUMMARY</div>
+          <div id="summaryList">
+            <!-- Populated via app.js -->
+          </div>
+        </div>
+
+        <!-- SIDEBAR QUICK TEMPLATES -->
+        <div class="side-panel panel">
+          <div class="muted-label small compact">QUICK TEMPLATES</div>
+          <div class="template-list" id="templateList">
+            <!-- Populated via app.js -->
+          </div>
+        </div>
+
+        <!-- PRIVACY & STORAGE NOTE -->
+        <div class="privacy-note">
+          🔒 <strong>Local-First Storage:</strong> Your data is stored on your device in browser <code>localStorage</code>. No external server tracking. Export JSON backup anytime in settings.
+        </div>
+
+      </aside>
+
+    </div>
+
+  </div>
+
+  <!-- ENTRY MODAL (ADD MEAL / WORKOUT) -->
+  <div class="modal" id="entryModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modalTitle">Add Food Entry</h3>
+      </div>
+      <div class="field-grid">
+        <input type="hidden" id="entryType" value="meal" />
+        
+        <div class="field">
+          <label>Presets</label>
+          <div class="preset-group" id="presetGroup"></div>
+        </div>
+
+        <div class="field">
+          <label for="entryName">Name / Description</label>
+          <input type="text" id="entryName" placeholder="e.g. Amul protein curd" />
+        </div>
+
+        <div class="field">
+          <label for="entryGrams">Portion Weight (grams)</label>
+          <input type="number" id="entryGrams" placeholder="e.g. 200" />
+        </div>
+
+        <div class="field">
+          <label for="entryCalories">Calories (kcal)</label>
+          <input type="number" id="entryCalories" placeholder="e.g. 140" />
+        </div>
+
+        <div class="field">
+          <label for="entryProtein">Protein (grams)</label>
+          <input type="number" id="entryProtein" placeholder="e.g. 12" />
+        </div>
+
+        <div class="field">
+          <label for="entryMeta">Notes / Ingredients</label>
+          <input type="text" id="entryMeta" placeholder="e.g. Curd + berries + chia" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-button" id="cancelEntryButton">Cancel</button>
+        <button class="primary-button" id="saveEntryButton">Save Entry</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM EXERCISE MODAL -->
+  <div class="modal" id="exerciseModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Add Exercise</h3>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="customExName">Exercise Name</label>
+          <input type="text" id="customExName" placeholder="e.g. Dumbbell Bicep Curls" />
+        </div>
+        <div class="field">
+          <label for="customExSetsReps">Sets & Reps</label>
+          <input type="text" id="customExSetsReps" value="3x10" placeholder="e.g. 3x8-10" />
+        </div>
+        <div class="field">
+          <label for="customExWeight">Weight / Resistance</label>
+          <input type="text" id="customExWeight" value="12.5kg" placeholder="e.g. 12.5kg or BW" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-button" id="cancelExModalBtn">Cancel</button>
+        <button class="primary-button" id="saveExModalBtn">Add Exercise</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHEATSHEET DRAWER MODAL -->
+  <div class="modal" id="cheatsheetModal" aria-hidden="true">
+    <div class="modal-card modal-large">
+      <div class="modal-head flex-between">
+        <h3>📖 Vegetarian Calorie & Protein Cheatsheet</h3>
+        <button class="mini-button" id="closeCheatsheetModalBtn">Close</button>
+      </div>
+      
+      <div class="field mb-12">
+        <input type="text" id="cheatSearchInput" placeholder="🔍 Search foods (e.g. curd, phulka, whey, rajma, oats)..." />
+      </div>
+
+      <div class="cheat-cat-pills">
+        <button class="cat-pill active" data-cat="all">All</button>
+        <button class="cat-pill" data-cat="dairy">Dairy & Whey</button>
+        <button class="cat-pill" data-cat="curries">Curries & Rotis</button>
+        <button class="cat-pill" data-cat="meals">Pre-made Meals</button>
+        <button class="cat-pill" data-cat="snacks">Snacks & Fruits</button>
+      </div>
+
+      <div class="cheat-grid" id="cheatListGrid">
+        <!-- Populated via app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS & DATA BACKUP MODAL -->
+  <div class="modal" id="settingsModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>⚙️ Settings & Mobile LAN Access</h3>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="targetCalInput">Target Calories (kcal)</label>
+          <input type="number" id="targetCalInput" value="1700" />
+        </div>
+
+        <div class="field">
+          <label for="targetProteinInput">Target Protein (g)</label>
+          <input type="number" id="targetProteinInput" value="130" />
+        </div>
+
+        <div class="field">
+          <label for="targetWeightInput">Current Body Weight (kg)</label>
+          <input type="number" step="0.1" id="targetWeightInput" value="70.0" />
+        </div>
+
+        <!-- LAN ACCESS HELPER BOX -->
+        <div class="lan-helper-box">
+          <div class="lan-title">📱 Phone / iPad Access on Home Wi-Fi</div>
+          <p class="lan-desc">To open this dashboard on your phone or iPad on home Wi-Fi:</p>
+          <ol class="lan-list">
+            <li>Open Safari / Chrome on your iPhone or iPad.</li>
+            <li>Visit: <strong style="color: var(--primary); font-size: 0.9rem;">http://192.168.1.4:8000</strong></li>
+            <li>Tap <strong>Share → Add to Home Screen</strong> for a full-screen app!</li>
+          </ol>
+        </div>
+
+        <hr class="divider" />
+        <div class="muted-label small">DATA MANAGEMENT (LOCAL BACKUP)</div>
+
+        <button class="secondary-button width-full" id="exportBackupBtn">📥 Export Data (JSON Backup)</button>
+        
+        <div class="file-import-wrap">
+          <label class="secondary-button width-full text-center cursor-pointer" for="importBackupInput">📤 Import Data (Restore JSON)</label>
+          <input type="file" id="importBackupInput" accept=".json" class="hidden" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="primary-button" id="saveSettingsBtn">Save Settings</button>
+        <button class="secondary-button" id="closeSettingsBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

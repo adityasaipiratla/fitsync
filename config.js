@@ -1,0 +1,4 @@
+window.__FITNESS_APP_CONFIG__ = {
+  supabaseUrl: 'https://bgxucxtnlrphadhiuvua.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJneHVjeHRubHJwaGFkaGl1dnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyODAwNzksImV4cCI6MjEwNDg1NjA3OX0.-Dq0giEN5lHojXfP4ztFCk77_rl2fjGLmaYg_rUCuUM'
+};
