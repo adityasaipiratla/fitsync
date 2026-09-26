@@ -464,6 +464,46 @@ function checkAndRecordPR(exName, weight, reps) {
   return false;
 }
 
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function deletePRRecord(exerciseName) {
+  if (!exerciseName || !allTimePRs[exerciseName]) return;
+  const item = allTimePRs[exerciseName];
+  const display = `${item.weight > 0 ? item.weight + 'kg' : 'BW'} × ${item.reps}`;
+  if (confirm(`Delete Personal Record for "${exerciseName}" (${display})?\n\nThis will remove the saved record. Your next logged set for this exercise will establish a new baseline.`)) {
+    delete allTimePRs[exerciseName];
+    try {
+      localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(allTimePRs));
+    } catch (e) {
+      console.warn('Could not save PRs to localStorage:', e);
+    }
+    showToast('🗑️', 'PR Deleted', `Removed record for ${exerciseName}.`);
+    render();
+  }
+}
+
+function clearAllPRRecords() {
+  const prKeys = Object.keys(allTimePRs);
+  if (prKeys.length === 0) return;
+  if (confirm(`Are you sure you want to delete all ${prKeys.length} Personal Records?\n\nThis will clear all records and cannot be undone.`)) {
+    allTimePRs = {};
+    try {
+      localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(allTimePRs));
+    } catch (e) {
+      console.warn('Could not save PRs to localStorage:', e);
+    }
+    showToast('🗑️', 'All PRs Cleared', 'All personal records have been reset.');
+    render();
+  }
+}
+
 function triggerWorkoutCelebration() {
   unlockAllAudio();
   if (window.confetti) {
@@ -588,9 +628,9 @@ function renderWorkout() {
     if (pr) {
       const prDisplay = `${pr.weight > 0 ? pr.weight + 'kg' : 'BW'} × ${pr.reps}`;
       if (pr.isNew && pr.date === currentDate) {
-        prPillHtml = `<span class="ex-pr-pill new-pr" title="New PR achieved today!">🏆 NEW PR: ${prDisplay}</span>`;
+        prPillHtml = `<span class="ex-pr-pill new-pr" title="New PR achieved today!">🏆 NEW PR: ${prDisplay} <button type="button" class="pr-pill-del-btn" data-prname="${escapeHtml(ex.name)}" title="Delete PR record for ${escapeHtml(ex.name)}">✕</button></span>`;
       } else {
-        prPillHtml = `<span class="ex-pr-pill" title="All-time personal record to beat">🏆 PR: ${prDisplay}</span>`;
+        prPillHtml = `<span class="ex-pr-pill" title="All-time personal record to beat">🏆 PR: ${prDisplay} <button type="button" class="pr-pill-del-btn" data-prname="${escapeHtml(ex.name)}" title="Delete PR record for ${escapeHtml(ex.name)}">✕</button></span>`;
       }
     } else {
       prPillHtml = `<span class="ex-pr-pill" style="opacity: 0.6; font-size: 0.7rem;" title="Complete a set to establish baseline">🏆 PR: None</span>`;
@@ -665,6 +705,13 @@ function renderWorkout() {
   });
   exContainer.querySelectorAll('.ex-del-btn').forEach(btn => {
     btn.addEventListener('click', () => deleteEx(Number(btn.dataset.exid)));
+  });
+  exContainer.querySelectorAll('.pr-pill-del-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const prName = btn.dataset.prname;
+      deletePRRecord(prName);
+    });
   });
 
   // Recovery Log fields
@@ -1248,16 +1295,22 @@ function renderHistoryView() {
     if (prKeys.length > 0) {
       prShowcase.classList.remove('hidden');
       prShowcase.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h3 style="font-size: 1rem; font-weight: 800; margin: 0;">🏆 All-Time Personal Records (Auto-Tracked)</h3>
-          <span style="font-size: 0.74rem; color: var(--muted); font-weight: 600;">${prKeys.length} exercises logged</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 800; margin: 0;">🏆 All-Time Personal Records (Auto-Tracked)</h3>
+            <span style="font-size: 0.74rem; color: var(--muted); font-weight: 600;">${prKeys.length} exercises logged</span>
+          </div>
+          <button type="button" class="btn-secondary" id="clearAllPRsBtn" style="font-size: 0.72rem; padding: 4px 8px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">Reset All PRs</button>
         </div>
         <div class="pr-hall-grid">
           ${prKeys.map(name => {
             const item = allTimePRs[name];
             return `
               <div class="pr-stat-card">
-                <span class="pr-name" title="${name}">${name}</span>
+                <div class="pr-card-header">
+                  <span class="pr-name" title="${name}">${name}</span>
+                  <button type="button" class="pr-card-del-btn" data-prname="${escapeHtml(name)}" title="Delete PR record for ${escapeHtml(name)}">✕</button>
+                </div>
                 <span class="pr-val">${item.weight > 0 ? item.weight + 'kg' : 'BW'} × ${item.reps}</span>
                 <span class="pr-date">Achieved: ${item.date || 'Baseline'}</span>
               </div>
@@ -1265,6 +1318,19 @@ function renderHistoryView() {
           }).join('')}
         </div>
       `;
+
+      prShowcase.querySelectorAll('.pr-card-del-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const prName = btn.dataset.prname;
+          deletePRRecord(prName);
+        });
+      });
+
+      const clearAllBtn = prShowcase.querySelector('#clearAllPRsBtn');
+      if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', () => clearAllPRRecords());
+      }
     } else {
       prShowcase.classList.add('hidden');
     }
@@ -1962,9 +2028,7 @@ function bindEvents() {
 
   // Floating Rest Timer Buttons (Bottom - completely unblocked)
   document.getElementById('startManualRestBtn')?.addEventListener('click', () => startRestTimer(userSettings.defaultRestSec || 90));
-  document.getElementById('triggerPRCelebrationBtn')?.addEventListener('click', () => triggerPRCelebration('Manual PR Celebration', 'Tested golden celebration cannons!'));
   document.getElementById('restAdd30Btn')?.addEventListener('click', () => addRestSeconds(30));
-  document.getElementById('restTest3sBtn')?.addEventListener('click', () => startRestTimer(3));
   document.getElementById('restDoneBtn')?.addEventListener('click', () => {
     stopRestTimer();
     playAudio('sndRest');
