@@ -6,6 +6,7 @@
 const STORAGE_KEY = 'fitsync_archive_v2';
 const SETTINGS_KEY = 'fitsync_user_settings_v2';
 const CHEATSHEET_STORAGE_KEY = 'fitsync_cheatsheet_v3';
+const PR_STORAGE_KEY = 'fitsync_exercise_prs_v1';
 const ONBOARDED_KEY = 'fitsync_onboarded_v2';
 const BACKUP_DATE_KEY = 'fitsync_last_backup_date';
 const BACKUP_DISMISSED_KEY = 'fitsync_backup_dismissed_until';
@@ -124,6 +125,7 @@ let userSettings = {
 
 let db = {}; // Stores daily logs keyed by YYYY-MM-DD
 let userCheatsheet = []; // Fully mutable cheatsheet stored in localStorage
+let allTimePRs = {}; // All-time Personal Records per exercise: { [exerciseName]: { weight, reps, date, isNew } }
 let activeRecipeIngredients = []; // Temporary ingredients in Smart Calculator
 
 function getTodayStr() {
@@ -221,6 +223,33 @@ function loadState() {
       userCheatsheet = JSON.parse(JSON.stringify(DEFAULT_CHEATSHEET_DATABASE));
       localStorage.setItem(CHEATSHEET_STORAGE_KEY, JSON.stringify(userCheatsheet));
     }
+
+    const savedPRs = localStorage.getItem(PR_STORAGE_KEY);
+    if (savedPRs) {
+      allTimePRs = JSON.parse(savedPRs);
+    } else {
+      allTimePRs = {};
+      // If historical logs exist in db, initialize baseline PRs from historical bests
+      Object.keys(db).forEach(dateKey => {
+        const day = db[dateKey];
+        if (day && day.exercises) {
+          day.exercises.forEach(ex => {
+            if (ex.sets) {
+              ex.sets.forEach(s => {
+                if (s.done && s.weight !== undefined && s.reps !== undefined) {
+                  const w = Number(s.weight) || 0;
+                  const r = Number(s.reps) || 0;
+                  const existing = allTimePRs[ex.name];
+                  if (!existing || w > existing.weight || (w === existing.weight && r > existing.reps)) {
+                    allTimePRs[ex.name] = { weight: w, reps: r, date: dateKey, isNew: false };
+                  }
+                }
+              });
+            }
+          });
+        }
+      });
+    }
   } catch (err) {
     console.warn('Could not load local state cleanly, using defaults.', err);
     userCheatsheet = JSON.parse(JSON.stringify(DEFAULT_CHEATSHEET_DATABASE));
@@ -232,6 +261,7 @@ function saveState() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(userSettings));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     localStorage.setItem(CHEATSHEET_STORAGE_KEY, JSON.stringify(userCheatsheet));
+    localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(allTimePRs));
   } catch (err) {
     console.warn('Could not save to localStorage.', err);
   }
@@ -353,6 +383,47 @@ function triggerPRCelebration(exName = 'Workout PR', detail = 'Personal best log
   showToast('👏', `NEW PERSONAL RECORD: ${exName}!`, detail);
 }
 
+// AUTOMATED ALL-TIME PR ENGINE (COMPARES AGAINST HISTORICAL RECORDS)
+function checkAndRecordPR(exName, weight, reps) {
+  const w = Number(weight) || 0;
+  const r = Number(reps) || 0;
+  if (w <= 0 && r <= 0) return false;
+
+  const existingPR = allTimePRs[exName];
+  if (!existingPR) {
+    // First time logging a set for this exercise: establish baseline record
+    allTimePRs[exName] = { weight: w, reps: r, date: currentDate, isNew: false };
+    try {
+      localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(allTimePRs));
+    } catch (e) {
+      console.warn(e);
+    }
+    showToast('🎯', `Baseline Set: ${exName}`, `${w > 0 ? w + 'kg × ' : ''}${r} reps. Beat this to trigger a PR!`);
+    return false;
+  }
+
+  // PR condition: strictly heavier weight, OR identical weight with strictly more reps
+  const isWeightPR = w > existingPR.weight;
+  const isRepsPR = (w === existingPR.weight && r > existingPR.reps);
+
+  if (isWeightPR || isRepsPR) {
+    const prevDesc = `${existingPR.weight > 0 ? existingPR.weight + 'kg × ' : ''}${existingPR.reps} reps`;
+    allTimePRs[exName] = { weight: w, reps: r, date: currentDate, isNew: true };
+    try {
+      localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(allTimePRs));
+    } catch (e) {
+      console.warn(e);
+    }
+    triggerPRCelebration(
+      exName,
+      `New all-time best: ${w > 0 ? w + 'kg × ' : ''}${r} reps (beats ${prevDesc})!`
+    );
+    return true;
+  }
+
+  return false;
+}
+
 function triggerWorkoutCelebration() {
   unlockAllAudio();
   if (window.confetti) {
@@ -472,12 +543,26 @@ function renderWorkout() {
 
   exContainer.innerHTML = log.exercises.map(ex => {
     const isExCompleted = ex.sets && ex.sets.length > 0 && ex.sets.every(s => s.done);
+    const pr = allTimePRs[ex.name];
+    let prPillHtml = '';
+    if (pr) {
+      const prDisplay = `${pr.weight > 0 ? pr.weight + 'kg' : 'BW'} × ${pr.reps}`;
+      if (pr.isNew && pr.date === currentDate) {
+        prPillHtml = `<span class="ex-pr-pill new-pr" title="New PR achieved today!">🏆 NEW PR: ${prDisplay}</span>`;
+      } else {
+        prPillHtml = `<span class="ex-pr-pill" title="All-time personal record to beat">🏆 PR: ${prDisplay}</span>`;
+      }
+    } else {
+      prPillHtml = `<span class="ex-pr-pill" style="opacity: 0.6; font-size: 0.7rem;" title="Complete a set to establish baseline">🏆 PR: None</span>`;
+    }
+
     return `
       <div class="exercise-card-set ${isExCompleted ? 'completed' : ''}" data-exid="${ex.id}">
         <div class="ex-header">
           <div class="ex-title-wrap">
             <span class="ex-title">${ex.name}</span>
             <span class="ex-target-pill">${ex.sets.length} Sets · ${ex.sets[0]?.weight || 0}kg</span>
+            ${prPillHtml}
           </div>
           <div style="display: flex; gap: 6px; align-items: center;">
             <button class="btn-del ex-del-btn" data-exid="${ex.id}" title="Remove Exercise">✕</button>
@@ -607,9 +692,13 @@ function renderSidebar() {
     <div class="summary-row"><span>Workout Split</span><strong>${log.workout?.name?.split('(')[0] || 'Rest'}</strong></div>
   `;
 
-  // Dynamic Past 7 Days Adherence Week Chart
+  // Dynamic Multi-Pillar Past 7 Days Adherence (Diet + Workout + Hydration)
   const weekChart = document.getElementById('weekChart');
+  const weekAvgBadge = document.getElementById('weekAvgBadge');
+  const weekChartSubtext = document.getElementById('weekChartSubtext');
+
   const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const now = new Date(currentDate + 'T00:00:00');
   const dayOfWeek = (now.getDay() + 6) % 7; // 0=Mon, 6=Sun
   
@@ -617,28 +706,83 @@ function renderSidebar() {
   monday.setDate(monday.getDate() - dayOfWeek);
 
   const weekScores = [];
+  let loggedDaysCount = 0;
+  let totalScoreSum = 0;
+  let workoutsCrushedWeek = 0;
+
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(d.getDate() + i);
     const dateKey = d.toISOString().split('T')[0];
     const dayLog = db[dateKey];
-    if (dayLog && (dayLog.meals?.length > 0 || dayLog.exercises?.some(e => e.done))) {
+
+    let dietScore = 0;
+    let workoutScore = 0;
+    let waterScore = 0;
+    let isLogged = false;
+
+    if (dayLog) {
       const cal = sumMealsCalories(dayLog);
       const prot = sumMealsProtein(dayLog);
-      const calScore = Math.min(100, Math.round((cal / userSettings.targetCal) * 100));
-      const protScore = Math.min(100, Math.round((prot / userSettings.targetProtein) * 100));
-      weekScores.push(Math.round((calScore + protScore) / 2));
-    } else {
-      weekScores.push(dateKey === currentDate ? 10 : 0);
+      const water = Number(dayLog.water) || 0.0;
+      const totalSets = (dayLog.exercises || []).reduce((acc, ex) => acc + (ex.sets?.length || 0), 0);
+      const doneSets = (dayLog.exercises || []).reduce((acc, ex) => acc + (ex.sets?.filter(s => s.done).length || 0), 0);
+
+      if (cal > 0 || prot > 0) {
+        const calScore = Math.min(100, Math.round((cal / userSettings.targetCal) * 100));
+        const protScore = Math.min(100, Math.round((prot / userSettings.targetProtein) * 100));
+        dietScore = Math.round((calScore + protScore) / 2);
+        isLogged = true;
+      }
+
+      if (totalSets > 0) {
+        workoutScore = Math.round((doneSets / totalSets) * 100);
+        if (doneSets > 0) isLogged = true;
+        if (workoutScore >= 80) workoutsCrushedWeek++;
+      }
+
+      if (water > 0) {
+        waterScore = Math.min(100, Math.round((water / (userSettings.targetWater || 3.0)) * 100));
+        isLogged = true;
+      }
+    }
+
+    const dayScore = isLogged ? Math.round((dietScore * 0.4) + (workoutScore * 0.4) + (waterScore * 0.2)) : 0;
+    weekScores.push({ score: dayScore, isLogged, dateKey, isToday: (dateKey === currentDate) });
+    if (isLogged) {
+      loggedDaysCount++;
+      totalScoreSum += dayScore;
     }
   }
 
-  weekChart.innerHTML = weekScores.map((score, idx) => `
-    <div class="week-day" title="${labels[idx]}: ${score}% adherence">
-      <div class="week-bar ${idx % 2 === 1 ? 'alt' : ''}" style="height: ${Math.max(12, score)}%"></div>
-      <div class="week-label">${labels[idx]}</div>
-    </div>
-  `).join('');
+  const avgWeekScore = loggedDaysCount > 0 ? Math.round(totalScoreSum / loggedDaysCount) : 0;
+
+  if (weekAvgBadge) {
+    weekAvgBadge.textContent = `${avgWeekScore}% Avg`;
+  }
+
+  if (weekChartSubtext) {
+    if (loggedDaysCount === 0) {
+      weekChartSubtext.textContent = 'No activity logged this week yet (0% baseline)';
+    } else {
+      weekChartSubtext.textContent = `${avgWeekScore}% weekly adherence · ${workoutsCrushedWeek}/4 workouts`;
+    }
+  }
+
+  if (weekChart) {
+    weekChart.innerHTML = weekScores.map((item, idx) => `
+      <div class="week-day ${item.isToday ? 'today' : ''}" title="${dayNames[idx]} (${item.dateKey}): ${item.score}% adherence">
+        <div class="week-bar-track">
+          ${item.score > 0 
+            ? `<div class="week-bar-fill ${idx % 2 === 1 ? 'alt' : ''}" style="height: ${Math.max(8, item.score)}%;"></div>` 
+            : `<div class="week-bar-fill empty"></div>`
+          }
+        </div>
+        <div class="week-label">${labels[idx]}</div>
+        <div class="week-score-text">${item.score}%</div>
+      </div>
+    `).join('');
+  }
 
   // Quick Split Switcher in Sidebar
   const templateList = document.getElementById('templateList');
@@ -1057,6 +1201,35 @@ function renderWeeklyView() {
 
 // COMPREHENSIVE HISTORICAL ARCHIVE VIEW (MEALS, SETS, WEIGHTS, RECOVERY)
 function renderHistoryView() {
+  // 1. Render All-Time PR Hall of Fame Showcase Card
+  const prShowcase = document.getElementById('prShowcaseCard');
+  if (prShowcase) {
+    const prKeys = Object.keys(allTimePRs);
+    if (prKeys.length > 0) {
+      prShowcase.classList.remove('hidden');
+      prShowcase.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="font-size: 1rem; font-weight: 800; margin: 0;">🏆 All-Time Personal Records (Auto-Tracked)</h3>
+          <span style="font-size: 0.74rem; color: var(--muted); font-weight: 600;">${prKeys.length} exercises logged</span>
+        </div>
+        <div class="pr-hall-grid">
+          ${prKeys.map(name => {
+            const item = allTimePRs[name];
+            return `
+              <div class="pr-stat-card">
+                <span class="pr-name" title="${name}">${name}</span>
+                <span class="pr-val">${item.weight > 0 ? item.weight + 'kg' : 'BW'} × ${item.reps}</span>
+                <span class="pr-date">Achieved: ${item.date || 'Baseline'}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else {
+      prShowcase.classList.add('hidden');
+    }
+  }
+
   const historyList = document.getElementById('historyList');
   if (!historyList) return;
 
@@ -1253,12 +1426,18 @@ function toggleSetDone(exId, setNum) {
   ex.done = ex.sets.every(s => s.done);
 
   if (setObj.done) {
+    // Check if this set is an automatic Personal Record!
+    const isNewPR = checkAndRecordPR(ex.name, setObj.weight, setObj.reps);
     const allWorkoutDone = log.exercises.length > 0 && log.exercises.every(e => e.done);
+
     if (allWorkoutDone) {
       log.workout.status = 'Completed';
       triggerWorkoutCelebration();
-    } else {
+    } else if (!isNewPR) {
       showToast('⚡', `Set ${setNum} Crushed!`, `${ex.name} — starting rest timer.`);
+      startRestTimer(userSettings.defaultRestSec || 90);
+    } else {
+      // PR celebration was already triggered, start rest timer
       startRestTimer(userSettings.defaultRestSec || 90);
     }
   }
@@ -1557,6 +1736,7 @@ function exportDataJSON() {
     settings: userSettings,
     history: db,
     cheatsheet: userCheatsheet,
+    prs: allTimePRs,
     exportDate: new Date().toISOString(),
     schemaVersion: 3
   };
@@ -1586,9 +1766,34 @@ function importDataJSON(event) {
       if (parsed.settings) userSettings = { ...userSettings, ...parsed.settings };
       if (parsed.history) db = { ...db, ...parsed.history };
       if (parsed.cheatsheet) userCheatsheet = parsed.cheatsheet;
+      if (parsed.prs) allTimePRs = { ...allTimePRs, ...parsed.prs };
       saveState();
       alert('Backup data successfully restored!');
       closeModal('settingsModal');
+    } catch (err) {
+      alert('Invalid backup JSON file.');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importWizardDataJSON(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (parsed.settings) userSettings = { ...userSettings, ...parsed.settings };
+      if (parsed.history) db = { ...db, ...parsed.history };
+      if (parsed.cheatsheet) userCheatsheet = parsed.cheatsheet;
+      if (parsed.prs) allTimePRs = { ...allTimePRs, ...parsed.prs };
+      localStorage.setItem(ONBOARDED_KEY, 'true');
+      saveState();
+      closeModal('onboardingModal');
+      showToast('🚀', 'Backup Restored & Ready!', 'Your historical logs and preferences are synced.');
     } catch (err) {
       alert('Invalid backup JSON file.');
       console.error(err);
@@ -1823,6 +2028,12 @@ function bindEvents() {
     launchOnboardingWizard();
   });
   document.getElementById('closeOnboardingBtn')?.addEventListener('click', () => closeModal('onboardingModal'));
+  document.getElementById('wizSkipBtn')?.addEventListener('click', () => {
+    localStorage.setItem(ONBOARDED_KEY, 'true');
+    closeModal('onboardingModal');
+    showToast('✨', 'Setup Skipped', 'Loaded default preferences. You can customize anytime in Settings.');
+  });
+  document.getElementById('wizImportInput')?.addEventListener('change', importWizardDataJSON);
   document.getElementById('wizNext1Btn')?.addEventListener('click', () => goToWizardStep(2));
   document.getElementById('wizBack2Btn')?.addEventListener('click', () => goToWizardStep(1));
   document.getElementById('wizNext2Btn')?.addEventListener('click', () => goToWizardStep(3));

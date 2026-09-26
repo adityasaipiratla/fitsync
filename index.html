@@ -140,7 +140,6 @@
               <div class="section-actions">
                 <span class="status-pill" id="workoutStatus"><span class="dot"></span> Ready</span>
                 <button class="mini-button" id="startManualRestBtn">⏱️ Rest (90s)</button>
-                <button class="mini-button" id="triggerPRCelebrationBtn">🏆 Log PR</button>
                 <button class="mini-button" id="selectSplitBtn">🔄 Switch Split</button>
                 <button class="mini-button" id="addExerciseBtn">+ Add Exercise</button>
               </div>
@@ -234,6 +233,7 @@
               <div class="card-subtext">All logged meals, individual exercise sets, water intake, and recovery notes</div>
             </div>
           </div>
+          <div id="prShowcaseCard" class="card mb-16 hidden"></div>
           <div id="historyList" class="history-container"></div>
         </div>
 
@@ -255,9 +255,15 @@
         
         <!-- SIDEBAR WEEKLY MINI CHART -->
         <div class="side-panel panel">
-          <div class="muted-label small compact">WEEKLY ADHERENCE</div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div class="muted-label small compact">WEEKLY ADHERENCE</div>
+            <span id="weekAvgBadge" style="font-size: 0.72rem; font-weight: 800; color: var(--primary);">0% Avg</span>
+          </div>
           <div class="week-grid" id="weekChart">
             <!-- Populated via app.js -->
+          </div>
+          <div id="weekChartSubtext" style="font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 6px;">
+            0% logged this week · 0/4 workouts
           </div>
         </div>
 
@@ -534,6 +540,18 @@
 
       <!-- STEP 1: CUT TARGETS -->
       <div class="wizard-step-pane" id="wizStep1">
+        <!-- CROSS-DEVICE QUICK SYNC RESTORE BANNER -->
+        <div class="onboard-sync-banner">
+          <div>
+            <strong style="color: #1e3a8a; font-size: 0.88rem;">📱 Using FitSync on another device (iPhone / Mac)?</strong>
+            <div style="font-size: 0.76rem; color: #1d4ed8; margin-top: 2px;">Restore your JSON backup to immediately sync all history, custom recipes, and skip setup!</div>
+          </div>
+          <div>
+            <label for="wizImportInput" class="mini-button accent-btn cursor-pointer">📥 Restore Backup JSON & Skip</label>
+            <input type="file" id="wizImportInput" accept=".json" class="hidden" />
+          </div>
+        </div>
+
         <h4 style="font-size: 1.1rem; margin-bottom: 4px;">Step 1 of 4: Your Bodyweight & Cutting Targets</h4>
         <p class="card-subtext mb-12">Personalize your calorie deficit and protein target for lean cutting.</p>
         
@@ -552,7 +570,8 @@
           </div>
         </div>
 
-        <div class="modal-actions" style="justify-content: flex-end; margin-top: 18px;">
+        <div class="modal-actions" style="justify-content: space-between; margin-top: 18px;">
+          <button class="secondary-button" id="wizSkipBtn">Skip Setup (Use Defaults)</button>
           <button class="primary-button" id="wizNext1Btn">Next: Hydration & Audio ➔</button>
         </div>
       </div>
@@ -671,11 +690,22 @@
           </ol>
         </div>
 
+        <!-- MULTI-DEVICE SYNC EXPLANATION BOX -->
+        <div class="lan-helper-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+          <div class="lan-title" style="color: #166534;">🔄 iPhone ↔ iPad Multi-Device Sync Guide</div>
+          <p class="lan-desc" style="color: #14532d;">FitSync is 100% private and stores your data on your device browser (<code>localStorage</code>) with zero external tracking. To sync across your devices in 5 seconds:</p>
+          <ol class="lan-list" style="color: #14532d;">
+            <li>On iPhone: Tap <strong>📥 Export Data (JSON)</strong> below.</li>
+            <li>AirDrop the file to your iPad or Mac.</li>
+            <li>On iPad: Tap <strong>📤 Import Data (Restore JSON)</strong> and select the file.</li>
+          </ol>
+        </div>
+
         <hr class="divider" />
         <div class="muted-label small">ONBOARDING & SETUP</div>
         <button class="secondary-button width-full mb-12" id="rerunWizardBtn">🚀 Re-run Onboarding Setup Wizard</button>
 
-        <div class="muted-label small">DATA MANAGEMENT (LOCAL BACKUP)</div>
+        <div class="muted-label small">DATA MANAGEMENT (LOCAL BACKUP & AIRDROP SYNC)</div>
         <button class="secondary-button width-full" id="exportBackupBtn">📥 Export Data (JSON Backup)</button>
         
         <div class="file-import-wrap">
