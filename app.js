@@ -5,13 +5,13 @@
 
 const STORAGE_KEY = 'fitsync_archive_v2';
 const SETTINGS_KEY = 'fitsync_user_settings_v2';
-const CUSTOM_CHEATSHEET_KEY = 'fitsync_custom_cheatsheet_v2';
+const CHEATSHEET_STORAGE_KEY = 'fitsync_cheatsheet_v3';
 const ONBOARDED_KEY = 'fitsync_onboarded_v2';
 const BACKUP_DATE_KEY = 'fitsync_last_backup_date';
 const BACKUP_DISMISSED_KEY = 'fitsync_backup_dismissed_until';
 
-// 22 Real Items & Combos from Calorie Cheatsheet.xlsx (Vegetarian Cut Focus)
-const CHEATSHEET_DATABASE = [
+// 22 Real Baseline Items & Combos from Calorie Cheatsheet.xlsx (Vegetarian Cut Focus)
+const DEFAULT_CHEATSHEET_DATABASE = [
   { id: 'cs_1', name: '1 phulka', portion: '1 medium (35g)', grams: 35, cal: 90, protein: 3.2, cat: 'curries' },
   { id: 'cs_2', name: 'Amul protein curd', portion: '100g base', grams: 100, cal: 70, protein: 6.0, cat: 'dairy' },
   { id: 'cs_3', name: 'Normal curd', portion: '100g base', grams: 100, cal: 65, protein: 4.0, cat: 'dairy' },
@@ -19,7 +19,7 @@ const CHEATSHEET_DATABASE = [
   { id: 'cs_5', name: '1 scoop yeast protein', portion: '1 scoop (30g)', grams: 30, cal: 130, protein: 27.0, cat: 'dairy' },
   { id: 'cs_6', name: 'Rajma curry', portion: '100g base', grams: 100, cal: 125, protein: 7.5, cat: 'curries' },
   { id: 'cs_7', name: 'Soya / Chana curry', portion: '100g base', grams: 100, cal: 145, protein: 11.0, cat: 'curries' },
-  { id: 'cs_8', name: '2‑egg cheese omelette', portion: '2 eggs + 50g cheese', grams: 160, cal: 300, protein: 25.0, cat: 'dairy' },
+  { id: 'cs_8', name: '2‑egg cheese omelette (50g cheese)', portion: '2 eggs + 50g cheese', grams: 160, cal: 300, protein: 25.0, cat: 'dairy' },
   { id: 'cs_9', name: '2 Whole Eggs', portion: '2 whole eggs', grams: 100, cal: 150, protein: 12.5, cat: 'dairy' },
   { id: 'cs_10', name: 'Protein oats', portion: '100g base', grams: 100, cal: 360, protein: 26.0, cat: 'dairy' },
   { id: 'cs_11', name: 'Makhana (Foxnuts)', portion: '50g base', grams: 50, cal: 180, protein: 4.0, cat: 'snacks' },
@@ -123,7 +123,8 @@ let userSettings = {
 };
 
 let db = {}; // Stores daily logs keyed by YYYY-MM-DD
-let customCheatsheet = []; // User-added custom foods
+let userCheatsheet = []; // Fully mutable cheatsheet stored in localStorage
+let activeRecipeIngredients = []; // Temporary ingredients in Smart Calculator
 
 function getTodayStr() {
   const d = new Date();
@@ -183,12 +184,11 @@ function getActiveLog(dateStr = currentDate) {
         status: 'Ready'
       },
       exercises: initialExercises,
-      meals: [], // Zero / null default for clean slate
+      meals: [], // Zero default meals for clean slate
       water: 0.0, // Zero default water
       recovery: { soreness: '', mood: '', joint: '', notes: '' }
     };
   } else {
-    // Normalize existing log if necessary
     if (db[dateStr].exercises) {
       db[dateStr].exercises.forEach(ex => normalizeExerciseSets(ex));
     }
@@ -205,6 +205,7 @@ function getActiveLog(dateStr = currentDate) {
   return db[dateStr];
 }
 
+// STATE PERSISTENCE
 function loadState() {
   try {
     const savedSettings = localStorage.getItem(SETTINGS_KEY);
@@ -213,10 +214,16 @@ function loadState() {
     const savedDB = localStorage.getItem(STORAGE_KEY);
     if (savedDB) db = JSON.parse(savedDB);
 
-    const savedCustomFoods = localStorage.getItem(CUSTOM_CHEATSHEET_KEY);
-    if (savedCustomFoods) customCheatsheet = JSON.parse(savedCustomFoods);
+    const savedCheatsheet = localStorage.getItem(CHEATSHEET_STORAGE_KEY);
+    if (savedCheatsheet) {
+      userCheatsheet = JSON.parse(savedCheatsheet);
+    } else {
+      userCheatsheet = JSON.parse(JSON.stringify(DEFAULT_CHEATSHEET_DATABASE));
+      localStorage.setItem(CHEATSHEET_STORAGE_KEY, JSON.stringify(userCheatsheet));
+    }
   } catch (err) {
     console.warn('Could not load local state cleanly, using defaults.', err);
+    userCheatsheet = JSON.parse(JSON.stringify(DEFAULT_CHEATSHEET_DATABASE));
   }
 }
 
@@ -224,11 +231,19 @@ function saveState() {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(userSettings));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    localStorage.setItem(CUSTOM_CHEATSHEET_KEY, JSON.stringify(customCheatsheet));
+    localStorage.setItem(CHEATSHEET_STORAGE_KEY, JSON.stringify(userCheatsheet));
   } catch (err) {
     console.warn('Could not save to localStorage.', err);
   }
   render();
+}
+
+function resetCheatsheetToDefaults() {
+  if (confirm('Are you sure you want to reset all Cheatsheet items to default recipes? Any custom additions or edits will be restored to defaults.')) {
+    userCheatsheet = JSON.parse(JSON.stringify(DEFAULT_CHEATSHEET_DATABASE));
+    saveState();
+    showToast('🔄', 'Cheatsheet Reset', 'Restored 22 original default food recipes.');
+  }
 }
 
 // AUDIO ENGINE (PRELOADED HTML5 AUDIO WITH USER UNLOCK)
@@ -253,18 +268,31 @@ function unlockAllAudio() {
 window.addEventListener('click', unlockAllAudio, { once: true });
 window.addEventListener('touchstart', unlockAllAudio, { once: true });
 
-// TOAST ALERT NOTIFICATION
+// TOAST ALERT NOTIFICATION (TOP ANCHORED - CLICK TO DISMISS IMMEDIATELY)
+let toastTimer = null;
+
 function showToast(icon, title, sub) {
   const toast = document.getElementById('prToast');
   if (!toast) return;
+
+  clearTimeout(toastTimer);
   document.getElementById('toastIcon').textContent = icon;
   document.getElementById('toastTitle').textContent = title;
   document.getElementById('toastSub').textContent = sub;
   toast.classList.add('show');
-  setTimeout(() => { toast.classList.remove('show'); }, 3800);
+
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3200);
 }
 
-// REST COUNTDOWN TIMER
+function dismissToast() {
+  const toast = document.getElementById('prToast');
+  if (toast) toast.classList.remove('show');
+  clearTimeout(toastTimer);
+}
+
+// REST COUNTDOWN TIMER (ANCHORED AT BOTTOM - UNBLOCKED)
 let restInterval = null;
 let restRemaining = 90;
 
@@ -331,7 +359,7 @@ function triggerWorkoutCelebration() {
     window.confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
   }
   playAudio('sndWorkout');
-  showToast('💪', 'Workout Routine Completed!', 'Great session today. Log your hydration and recovery notes.');
+  showToast('💪', 'Workout Routine Completed!', 'Great session today. Hydrate and log recovery notes.');
 }
 
 // CALCULATION HELPERS
@@ -585,7 +613,6 @@ function renderSidebar() {
   const now = new Date(currentDate + 'T00:00:00');
   const dayOfWeek = (now.getDay() + 6) % 7; // 0=Mon, 6=Sun
   
-  // Get Monday of current week
   const monday = new Date(now);
   monday.setDate(monday.getDate() - dayOfWeek);
 
@@ -631,22 +658,17 @@ function renderSidebar() {
   });
 }
 
-// CHEATSHEET DRAWER WITH MULTIPLIERS & CUSTOM FOODS
-function getAllCheatsheetItems() {
-  return [...CHEATSHEET_DATABASE, ...customCheatsheet];
-}
-
+// CHEATSHEET DRAWER WITH MULTIPLIERS, COMPLETE EDITABILITY, AND SMART CALCULATOR
 function renderCheatsheetDrawer() {
   const search = (document.getElementById('cheatSearchInput')?.value || '').toLowerCase();
   const grid = document.getElementById('cheatListGrid');
   if (!grid) return;
 
-  const allItems = getAllCheatsheetItems();
-  const filtered = allItems.filter(item => {
-    const isCustom = !!item.isCustom;
+  const filtered = userCheatsheet.filter(item => {
+    const isCustomOrEdited = !!item.isCustom || !!item.isEdited;
     let matchCat = false;
     if (activeCatFilter === 'all') matchCat = true;
-    else if (activeCatFilter === 'custom') matchCat = isCustom;
+    else if (activeCatFilter === 'custom') matchCat = isCustomOrEdited;
     else matchCat = item.cat === activeCatFilter;
 
     const matchSearch = item.name.toLowerCase().includes(search) || (item.portion || '').toLowerCase().includes(search);
@@ -654,7 +676,7 @@ function renderCheatsheetDrawer() {
   });
 
   if (filtered.length === 0) {
-    grid.innerHTML = '<div class="card-subtext" style="padding: 16px; text-align: center;">No items found. Tap "➕ Add Food" to create your own!</div>';
+    grid.innerHTML = '<div class="card-subtext" style="padding: 16px; text-align: center;">No items found. Tap "➕ Add Food / Recipe" to create your own!</div>';
     return;
   }
 
@@ -663,13 +685,14 @@ function renderCheatsheetDrawer() {
       <div>
         <strong style="font-size: 0.92rem;">
           ${item.name}
+          ${item.isEdited ? '<span class="badge-custom">Edited</span>' : ''}
           ${item.isCustom ? '<span class="badge-custom">Custom</span>' : ''}
         </strong>
         <div style="font-size: 0.76rem; color: var(--muted); margin-top: 2px;">
           ${item.portion} · ${item.cal} kcal · ${item.protein}g protein
         </div>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         <div class="multiplier-row">
           <button class="mult-btn" data-mult="0.5">0.5x</button>
           <button class="mult-btn active" data-mult="1">1x</button>
@@ -677,12 +700,13 @@ function renderCheatsheetDrawer() {
           <button class="mult-btn" data-mult="3">3x</button>
         </div>
         <button class="mini-button accent-btn add-cheat-mult-btn" data-id="${item.id}">+ Add</button>
-        ${item.isCustom ? `<button class="btn-del delete-custom-food-btn" data-id="${item.id}" title="Delete Custom Food">✕</button>` : ''}
+        <button class="mini-button edit-cheat-btn" data-id="${item.id}" title="Edit recipe/portion/macros">✏️</button>
+        <button class="btn-del delete-cheat-btn" data-id="${item.id}" title="Delete from Cheatsheet">✕</button>
       </div>
     </div>
   `).join('');
 
-  // Handle Multiplier pill selection
+  // Handle Multiplier selection
   grid.querySelectorAll('.mult-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -703,18 +727,178 @@ function renderCheatsheetDrawer() {
     });
   });
 
-  // Delete Custom Food
-  grid.querySelectorAll('.delete-custom-food-btn').forEach(btn => {
+  // Edit any Cheatsheet Food/Recipe
+  grid.querySelectorAll('.edit-cheat-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (confirm('Delete this custom food from cheatsheet?')) {
-        deleteCustomFood(btn.dataset.id);
+      openEditFoodModal(btn.dataset.id);
+    });
+  });
+
+  // Delete Cheatsheet item
+  grid.querySelectorAll('.delete-cheat-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm('Remove this food item from your Cheatsheet?')) {
+        deleteCheatsheetItem(btn.dataset.id);
       }
     });
   });
 }
 
-// REAL DYNAMIC 7-DAY ADHERENCE VIEW
+// SMART RECIPE / INGREDIENT CALCULATOR LOGIC
+function openEditFoodModal(foodId = null) {
+  activeRecipeIngredients = [];
+  renderActiveIngredientsTray();
+
+  if (foodId) {
+    const item = userCheatsheet.find(f => f.id === foodId);
+    if (item) {
+      document.getElementById('customFoodModalTitle').textContent = `✏️ Edit: ${item.name}`;
+      document.getElementById('cfEditId').value = item.id;
+      document.getElementById('cfName').value = item.name;
+      document.getElementById('cfCategory').value = item.cat || 'dairy';
+      document.getElementById('cfPortion').value = item.portion || '';
+      document.getElementById('cfGrams').value = item.grams || 100;
+      document.getElementById('cfCalories').value = item.cal || 0;
+      document.getElementById('cfProtein').value = item.protein || 0;
+    }
+  } else {
+    document.getElementById('customFoodModalTitle').textContent = '➕ Add New Food / Recipe';
+    document.getElementById('cfEditId').value = '';
+    document.getElementById('cfName').value = '';
+    document.getElementById('cfCategory').value = 'dairy';
+    document.getElementById('cfPortion').value = '1 serving';
+    document.getElementById('cfGrams').value = '100';
+    document.getElementById('cfCalories').value = '';
+    document.getElementById('cfProtein').value = '';
+  }
+
+  openModal('customFoodModal');
+}
+
+function addIngredientToRecipe(name, grams, cal, protein) {
+  activeRecipeIngredients.push({ name, grams, cal, protein });
+  updateRecipeFromIngredients();
+}
+
+function removeIngredientFromRecipe(index) {
+  activeRecipeIngredients.splice(index, 1);
+  updateRecipeFromIngredients();
+}
+
+function clearRecipeIngredients() {
+  activeRecipeIngredients = [];
+  renderActiveIngredientsTray();
+}
+
+function updateRecipeFromIngredients() {
+  renderActiveIngredientsTray();
+
+  if (activeRecipeIngredients.length === 0) return;
+
+  let totalGrams = 0;
+  let totalCal = 0;
+  let totalProtein = 0;
+
+  activeRecipeIngredients.forEach(ing => {
+    totalGrams += ing.grams;
+    totalCal += ing.cal;
+    totalProtein += ing.protein;
+  });
+
+  totalProtein = Math.round(totalProtein * 10) / 10;
+
+  document.getElementById('cfGrams').value = totalGrams;
+  document.getElementById('cfCalories').value = totalCal;
+  document.getElementById('cfProtein').value = totalProtein;
+
+  // Build descriptive portion text
+  const counts = {};
+  activeRecipeIngredients.forEach(ing => {
+    counts[ing.name] = (counts[ing.name] || 0) + 1;
+  });
+  const portionDesc = Object.entries(counts).map(([name, cnt]) => `${cnt > 1 ? cnt + 'x ' : ''}${name}`).join(' + ');
+  document.getElementById('cfPortion').value = `${portionDesc} (${totalGrams}g)`;
+
+  // Suggest title if empty
+  const currentTitle = document.getElementById('cfName').value.trim();
+  if (!currentTitle || currentTitle.includes('Omelette') || currentTitle.includes('Recipe')) {
+    document.getElementById('cfName').value = portionDesc;
+  }
+}
+
+function renderActiveIngredientsTray() {
+  const tray = document.getElementById('activeIngredientsTray');
+  if (!tray) return;
+
+  if (activeRecipeIngredients.length === 0) {
+    tray.innerHTML = '<span style="font-size: 0.78rem; color: var(--muted);">No ingredients tapped yet. Tap chips above to auto-sum, or edit inputs below directly.</span>';
+    return;
+  }
+
+  tray.innerHTML = activeRecipeIngredients.map((ing, idx) => `
+    <span class="active-ing-chip">
+      ${ing.name} (${ing.cal} kcal)
+      <span class="remove-ing" data-idx="${idx}" title="Remove this ingredient">✕</span>
+    </span>
+  `).join('');
+
+  tray.querySelectorAll('.remove-ing').forEach(btn => {
+    btn.addEventListener('click', () => removeIngredientFromRecipe(Number(btn.dataset.idx)));
+  });
+}
+
+function saveCustomFood() {
+  const name = document.getElementById('cfName').value.trim();
+  const cat = document.getElementById('cfCategory').value;
+  const portion = document.getElementById('cfPortion').value.trim() || '1 serving';
+  const grams = Number(document.getElementById('cfGrams').value) || 100;
+  const cal = Number(document.getElementById('cfCalories').value) || 0;
+  const protein = Number(document.getElementById('cfProtein').value) || 0;
+  const editId = document.getElementById('cfEditId').value;
+
+  if (!name) {
+    alert('Please enter a food / recipe name.');
+    return;
+  }
+
+  if (editId) {
+    const existing = userCheatsheet.find(f => f.id === editId);
+    if (existing) {
+      existing.name = name;
+      existing.cat = cat;
+      existing.portion = portion;
+      existing.grams = grams;
+      existing.cal = cal;
+      existing.protein = protein;
+      existing.isEdited = true;
+    }
+  } else {
+    userCheatsheet.unshift({
+      id: 'cust_' + Date.now(),
+      name,
+      cat,
+      portion,
+      grams,
+      cal,
+      protein,
+      isCustom: true
+    });
+  }
+
+  saveState();
+  closeModal('customFoodModal');
+  showToast('📖', 'Recipe Saved!', `${name} (${cal} kcal, ${protein}g protein)`);
+}
+
+function deleteCheatsheetItem(id) {
+  userCheatsheet = userCheatsheet.filter(f => f.id !== id);
+  saveState();
+  showToast('🗑️', 'Item Removed', 'Food removed from cheatsheet.');
+}
+
+// REAL MULTI-PILLAR 7-DAY ADHERENCE VIEW (DIET VS WORKOUT VS WATER)
 function renderWeeklyView() {
   const weeklyList = document.getElementById('weeklyMetrics');
   if (!weeklyList) return;
@@ -726,10 +910,12 @@ function renderWeeklyView() {
   const monday = new Date(now);
   monday.setDate(monday.getDate() - dayOfWeek);
 
-  let totalAdherenceSum = 0;
-  let loggedDaysCount = 0;
+  let totalLoggedDays = 0;
   let totalCaloriesWeek = 0;
   let totalProteinWeek = 0;
+  let totalWaterWeek = 0;
+  let workoutsCrushedWeek = 0;
+  let weeklyOverallScoreSum = 0;
 
   const rowsHtml = [];
   for (let i = 0; i < 7; i++) {
@@ -738,74 +924,238 @@ function renderWeeklyView() {
     const dateKey = d.toISOString().split('T')[0];
     const dayLog = db[dateKey];
 
-    let score = 0;
+    let dietScore = 0;
+    let workoutScore = 0;
+    let waterScore = 0;
+    let calVal = 0;
+    let protVal = 0;
+    let waterVal = 0;
+    let completedSetsCount = 0;
+    let totalSetsPlanned = 0;
+
     if (dayLog) {
-      const c = sumMealsCalories(dayLog);
-      const p = sumMealsProtein(dayLog);
-      const calScore = Math.min(100, Math.round((c / userSettings.targetCal) * 100));
-      const protScore = Math.min(100, Math.round((p / userSettings.targetProtein) * 100));
-      score = Math.round((calScore + protScore) / 2);
-      if (c > 0 || p > 0) {
-        loggedDaysCount++;
-        totalCaloriesWeek += c;
-        totalProteinWeek += p;
-        totalAdherenceSum += score;
+      calVal = sumMealsCalories(dayLog);
+      protVal = sumMealsProtein(dayLog);
+      waterVal = Number(dayLog.water) || 0.0;
+
+      // Diet Adherence (Calorie deficit zone & Protein target)
+      if (calVal > 0 || protVal > 0) {
+        const calScore = Math.min(100, Math.round((calVal / userSettings.targetCal) * 100));
+        const protScore = Math.min(100, Math.round((protVal / userSettings.targetProtein) * 100));
+        dietScore = Math.round((calScore + protScore) / 2);
+      }
+
+      // Workout Adherence
+      if (dayLog.exercises && dayLog.exercises.length > 0) {
+        totalSetsPlanned = dayLog.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0);
+        completedSetsCount = dayLog.exercises.reduce((acc, ex) => acc + (ex.sets?.filter(s => s.done).length || 0), 0);
+        workoutScore = totalSetsPlanned > 0 ? Math.round((completedSetsCount / totalSetsPlanned) * 100) : 0;
+      }
+
+      // Water Adherence
+      waterScore = Math.min(100, Math.round((waterVal / (userSettings.targetWater || 3.0)) * 100));
+
+      if (calVal > 0 || protVal > 0 || completedSetsCount > 0 || waterVal > 0) {
+        totalLoggedDays++;
+        totalCaloriesWeek += calVal;
+        totalProteinWeek += protVal;
+        totalWaterWeek += waterVal;
+        if (workoutScore >= 80) workoutsCrushedWeek++;
       }
     }
 
+    const dayOverallScore = Math.round((dietScore * 0.4) + (workoutScore * 0.4) + (waterScore * 0.2));
+    if (dayLog && (calVal > 0 || completedSetsCount > 0)) {
+      weeklyOverallScoreSum += dayOverallScore;
+    }
+
+    let badgeClass = 'var(--muted)';
+    let badgeText = 'Unlogged / Rest';
+    if (dayOverallScore >= 85) {
+      badgeClass = '#10b981';
+      badgeText = `🔥 Perfect Day (${dayOverallScore}%)`;
+    } else if (workoutScore >= 80) {
+      badgeClass = '#3b82f6';
+      badgeText = `💪 Workout Crushed (${workoutScore}%)`;
+    } else if (dietScore >= 70) {
+      badgeClass = '#10b981';
+      badgeText = `🥗 Diet On Target (${dietScore}%)`;
+    } else if (dayOverallScore > 0) {
+      badgeClass = '#f59e0b';
+      badgeText = `⚡ Partial Activity (${dayOverallScore}%)`;
+    }
+
     rowsHtml.push(`
-      <div class="summary-row">
-        <span style="width: 50px; font-weight: 700;">${labels[i]}</span>
-        <div style="flex: 1; background: #edf3ff; height: 12px; border-radius: 6px; overflow: hidden; margin: 0 12px;">
-          <div style="width: ${score}%; background: var(--primary); height: 100%;"></div>
+      <div class="adherence-day-card">
+        <div class="adherence-day-header">
+          <div>
+            <strong style="font-size: 0.95rem;">${labels[i]} · ${dateKey}</strong>
+            <span style="font-size: 0.76rem; color: var(--muted); margin-left: 6px;">${dayLog?.workout?.name?.split('(')[0] || 'Session'}</span>
+          </div>
+          <span style="font-size: 0.74rem; font-weight: 800; color: ${badgeClass};">${badgeText}</span>
         </div>
-        <strong>${score}% adherence</strong>
+
+        <div class="pillar-row">
+          <span class="pillar-label">🥗 Diet</span>
+          <div class="pillar-bar-bg">
+            <div class="pillar-bar-fill diet" style="width: ${dietScore}%;"></div>
+          </div>
+          <span class="pillar-stats">${calVal} kcal · ${protVal}g P (${dietScore}%)</span>
+        </div>
+
+        <div class="pillar-row">
+          <span class="pillar-label">💪 Workout</span>
+          <div class="pillar-bar-bg">
+            <div class="pillar-bar-fill workout" style="width: ${workoutScore}%;"></div>
+          </div>
+          <span class="pillar-stats">${completedSetsCount}/${totalSetsPlanned} sets (${workoutScore}%)</span>
+        </div>
+
+        <div class="pillar-row">
+          <span class="pillar-label">💧 Hydration</span>
+          <div class="pillar-bar-bg">
+            <div class="pillar-bar-fill water" style="width: ${waterScore}%;"></div>
+          </div>
+          <span class="pillar-stats">${waterVal.toFixed(1)} / ${userSettings.targetWater || 3.0} L (${waterScore}%)</span>
+        </div>
       </div>
     `);
   }
 
   weeklyList.innerHTML = rowsHtml.join('');
 
-  const avgAdherence = loggedDaysCount > 0 ? Math.round(totalAdherenceSum / loggedDaysCount) : 0;
-  const avgCal = loggedDaysCount > 0 ? Math.round(totalCaloriesWeek / loggedDaysCount) : 0;
-  const avgProtein = loggedDaysCount > 0 ? Math.round((totalProteinWeek / loggedDaysCount) * 10) / 10 : 0;
+  const avgCalories = totalLoggedDays > 0 ? Math.round(totalCaloriesWeek / totalLoggedDays) : 0;
+  const avgProtein = totalLoggedDays > 0 ? Math.round((totalProteinWeek / totalLoggedDays) * 10) / 10 : 0;
+  const avgAdherence = totalLoggedDays > 0 ? Math.round(weeklyOverallScoreSum / totalLoggedDays) : 0;
 
   document.getElementById('weeklySummary').innerHTML = `
-    <div class="summary-row"><span>7-Day Logged Days</span><strong>${loggedDaysCount} / 7 days</strong></div>
-    <div class="summary-row"><span>Average Adherence</span><strong>${avgAdherence}%</strong></div>
-    <div class="summary-row"><span>Average Daily Calories</span><strong>${avgCal} / ${userSettings.targetCal} kcal</strong></div>
-    <div class="summary-row"><span>Average Daily Protein</span><strong>${avgProtein} / ${userSettings.targetProtein}g</strong></div>
+    <h3 style="font-size: 1rem; font-weight: 800; margin-bottom: 8px;">📊 7-Day Performance Matrix</h3>
+    <div class="weekly-summary-grid">
+      <div class="weekly-stat-tile">
+        <div class="val">${avgAdherence}%</div>
+        <div class="lbl">Avg Adherence</div>
+      </div>
+      <div class="weekly-stat-tile">
+        <div class="val">${avgCalories}</div>
+        <div class="lbl">Avg Daily Kcal</div>
+      </div>
+      <div class="weekly-stat-tile">
+        <div class="val">${avgProtein}g</div>
+        <div class="lbl">Avg Daily Protein</div>
+      </div>
+      <div class="weekly-stat-tile">
+        <div class="val">${workoutsCrushedWeek} / 4</div>
+        <div class="lbl">Workouts Crushed</div>
+      </div>
+      <div class="weekly-stat-tile">
+        <div class="val">${totalWaterWeek.toFixed(1)} L</div>
+        <div class="lbl">Total Water Drunk</div>
+      </div>
+    </div>
   `;
 }
 
+// COMPREHENSIVE HISTORICAL ARCHIVE VIEW (MEALS, SETS, WEIGHTS, RECOVERY)
 function renderHistoryView() {
   const historyList = document.getElementById('historyList');
   if (!historyList) return;
 
   const keys = Object.keys(db).sort().reverse();
-  if (keys.length === 0) {
-    historyList.innerHTML = '<div class="card-subtext" style="padding: 16px;">No historical logs recorded yet. Complete today to start your archive!</div>';
+  const loggedKeys = keys.filter(k => {
+    const e = db[k];
+    return e && (e.meals?.length > 0 || e.water > 0 || e.exercises?.some(ex => ex.sets?.some(s => s.done)));
+  });
+
+  if (loggedKeys.length === 0) {
+    historyList.innerHTML = '<div class="card-subtext" style="padding: 16px;">No historical sessions recorded yet. Log food or complete sets today to begin your archive!</div>';
     return;
   }
 
-  historyList.innerHTML = keys.map(dateKey => {
+  historyList.innerHTML = loggedKeys.map(dateKey => {
     const entry = db[dateKey];
-    const c = sumMealsCalories(entry);
-    const p = sumMealsProtein(entry);
-    const water = entry.water ? entry.water.toFixed(1) + 'L' : '0.0L';
+    const totalCal = sumMealsCalories(entry);
+    const totalProt = sumMealsProtein(entry);
+    const water = entry.water ? entry.water.toFixed(1) + ' L' : '0.0 L';
+    const rec = entry.recovery || {};
+
     const completedSets = (entry.exercises || []).reduce((acc, ex) => acc + (ex.sets?.filter(s => s.done).length || 0), 0);
+    const totalSets = (entry.exercises || []).reduce((acc, ex) => acc + (ex.sets?.length || 0), 0);
+
     return `
-      <div class="card mb-12">
-        <div class="card-row flex-between">
+      <div class="history-entry-card">
+        <div class="history-entry-head">
           <div>
-            <strong class="card-title">${dateKey}</strong>
-            <div class="card-subtext">${entry.workout?.name || 'Workout session'} · ${completedSets} sets done · ${water} water</div>
+            <strong style="font-size: 1.1rem; color: var(--text);">${dateKey}</strong>
+            <span style="font-size: 0.8rem; color: var(--muted); margin-left: 8px;">${entry.workout?.name || 'Workout Session'}</span>
           </div>
-          <span class="meal-tag">${c} kcal · ${p}g protein</span>
+          <button class="mini-button accent-btn load-day-btn" data-date="${dateKey}">⚡ Open in Today View</button>
+        </div>
+
+        <div class="history-quick-pills">
+          <span class="history-pill">🔥 ${totalCal} kcal</span>
+          <span class="history-pill">🥩 ${totalProt}g protein</span>
+          <span class="history-pill">💧 ${water} water</span>
+          <span class="history-pill">💪 ${completedSets}/${totalSets} sets done</span>
+        </div>
+
+        <!-- 1. LOGGED MEALS BREAKDOWN -->
+        <div class="history-inner-section">
+          <div class="history-inner-title">🥗 Logged Daily Meals (${(entry.meals || []).length} items)</div>
+          ${(!entry.meals || entry.meals.length === 0) ? '<span class="card-subtext">No meals logged for this day.</span>' : `
+            <div class="history-meals-grid">
+              ${entry.meals.map(m => `
+                <div class="history-meal-row">
+                  <span><strong>${m.name}</strong> ${m.grams ? `(${m.grams}g)` : ''}</span>
+                  <span style="color: var(--primary); font-weight: 700;">${m.calories} kcal · ${m.protein}g protein</span>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+
+        <!-- 2. WORKOUT EXERCISES & SETS BREAKDOWN -->
+        <div class="history-inner-section">
+          <div class="history-inner-title">💪 Workout Performance & Completed Sets</div>
+          ${(!entry.exercises || entry.exercises.length === 0) ? '<span class="card-subtext">No exercises logged.</span>' : `
+            <div class="history-ex-list">
+              ${entry.exercises.map(ex => {
+                const finishedSets = (ex.sets || []).filter(s => s.done);
+                return `
+                  <div class="history-ex-row">
+                    <span><strong>${ex.name}</strong> (${finishedSets.length}/${ex.sets?.length || 0} sets done)</span>
+                    <span style="color: var(--muted); font-size: 0.76rem;">
+                      ${(ex.sets || []).map(s => `${s.weight}kg x ${s.reps}${s.done ? '✓' : ''}`).join(' · ')}
+                    </span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+
+        <!-- 3. POST-WORKOUT RECOVERY LOG -->
+        <div class="history-inner-section">
+          <div class="history-inner-title">📊 Recovery & Readiness</div>
+          <div style="font-size: 0.8rem; color: var(--text); display: flex; gap: 14px; flex-wrap: wrap;">
+            <span><strong>Soreness:</strong> ${rec.soreness ? rec.soreness + '/10' : 'Unrated'}</span>
+            <span><strong>Mood:</strong> ${rec.mood || 'Unrated'}</span>
+            <span><strong>Joints:</strong> ${rec.joint || 'OK'}</span>
+            <span><strong>Notes:</strong> ${rec.notes ? `"${rec.notes}"` : 'None'}</span>
+          </div>
         </div>
       </div>
     `;
   }).join('');
+
+  // Bind "Open in Today View" buttons
+  historyList.querySelectorAll('.load-day-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentDate = btn.dataset.date;
+      setActiveTab('today');
+      render();
+      showToast('📅', 'Loaded Historical Day', `Viewing dashboard for ${currentDate}`);
+    });
+  });
 }
 
 function renderTemplatesView() {
@@ -922,7 +1272,6 @@ function deleteSet(exId, setNum) {
   if (!ex || ex.sets.length <= 1) return;
 
   ex.sets = ex.sets.filter(s => s.setNum !== setNum);
-  // Re-index remaining sets
   ex.sets.forEach((s, idx) => s.setNum = idx + 1);
   ex.done = ex.sets.every(s => s.done);
   saveState();
@@ -1034,8 +1383,7 @@ function initWaterSlider() {
 
 // CHEATSHEET & MEAL LOGGING ACTIONS
 function addCheatsheetItemById(id, mult = 1) {
-  const allItems = getAllCheatsheetItems();
-  const item = allItems.find(i => i.id === id);
+  const item = userCheatsheet.find(i => i.id === id);
   if (!item) return;
 
   const log = getActiveLog();
@@ -1057,67 +1405,16 @@ function addCheatsheetItemById(id, mult = 1) {
 }
 
 function addCheatsheetItemByName(name, mult = 1) {
-  const allItems = getAllCheatsheetItems();
-  const item = allItems.find(i => i.name.toLowerCase() === name.toLowerCase());
+  const item = userCheatsheet.find(i => i.name.toLowerCase() === name.toLowerCase())
+    || userCheatsheet.find(i => i.name.toLowerCase().includes(name.toLowerCase()));
   if (item) {
     addCheatsheetItemById(item.id, mult);
-  } else {
-    // Fallback search
-    const partial = allItems.find(i => i.name.toLowerCase().includes(name.toLowerCase()));
-    if (partial) addCheatsheetItemById(partial.id, mult);
   }
 }
 
 function deleteMeal(id) {
   const log = getActiveLog();
   log.meals = (log.meals || []).filter(m => m.id !== id);
-  saveState();
-}
-
-function saveCustomFood() {
-  const name = document.getElementById('cfName').value.trim();
-  const cat = document.getElementById('cfCategory').value;
-  const portion = document.getElementById('cfPortion').value.trim() || '100g base';
-  const grams = Number(document.getElementById('cfGrams').value) || 100;
-  const cal = Number(document.getElementById('cfCalories').value) || 0;
-  const protein = Number(document.getElementById('cfProtein').value) || 0;
-  const editId = document.getElementById('cfEditId').value;
-
-  if (!name) {
-    alert('Please enter a food name.');
-    return;
-  }
-
-  if (editId) {
-    const existing = customCheatsheet.find(f => f.id === editId);
-    if (existing) {
-      existing.name = name;
-      existing.cat = cat;
-      existing.portion = portion;
-      existing.grams = grams;
-      existing.cal = cal;
-      existing.protein = protein;
-    }
-  } else {
-    customCheatsheet.push({
-      id: 'cust_' + Date.now(),
-      name,
-      cat,
-      portion,
-      grams,
-      cal,
-      protein,
-      isCustom: true
-    });
-  }
-
-  saveState();
-  closeModal('customFoodModal');
-  showToast('📖', 'Cheatsheet Updated!', name);
-}
-
-function deleteCustomFood(id) {
-  customCheatsheet = customCheatsheet.filter(f => f.id !== id);
   saveState();
 }
 
@@ -1192,7 +1489,7 @@ function openEntryModal(type = 'meal') {
   
   const presetGroup = document.getElementById('presetGroup');
   const presets = type === 'meal' 
-    ? getAllCheatsheetItems().slice(0, 6)
+    ? userCheatsheet.slice(0, 6)
     : WORKOUT_SPLITS.map(s => ({ name: s.name, meta: s.meta }));
 
   presetGroup.innerHTML = presets.map((p, idx) => `
@@ -1259,9 +1556,9 @@ function exportDataJSON() {
   const payload = {
     settings: userSettings,
     history: db,
-    customCheatsheet: customCheatsheet,
+    cheatsheet: userCheatsheet,
     exportDate: new Date().toISOString(),
-    schemaVersion: 2
+    schemaVersion: 3
   };
   const str = JSON.stringify(payload, null, 2);
   const blob = new Blob([str], { type: 'application/json' });
@@ -1288,7 +1585,7 @@ function importDataJSON(event) {
       const parsed = JSON.parse(e.target.result);
       if (parsed.settings) userSettings = { ...userSettings, ...parsed.settings };
       if (parsed.history) db = { ...db, ...parsed.history };
-      if (parsed.customCheatsheet) customCheatsheet = parsed.customCheatsheet;
+      if (parsed.cheatsheet) userCheatsheet = parsed.cheatsheet;
       saveState();
       alert('Backup data successfully restored!');
       closeModal('settingsModal');
@@ -1309,7 +1606,7 @@ function setupOnboardingWizard() {
       'Amul protein curd',
       '1.5 scoops whey',
       'Rajma curry',
-      '2‑egg cheese omelette',
+      '2‑egg cheese omelette (50g cheese)',
       'Soya / Chana curry',
       'Makhana (Foxnuts)',
       'Protein oats'
@@ -1418,7 +1715,7 @@ function bindEvents() {
   document.getElementById('addWater750Btn')?.addEventListener('click', () => addWater(0.75));
   document.getElementById('resetWaterBtn')?.addEventListener('click', resetWater);
 
-  // Floating Rest Timer Buttons
+  // Floating Rest Timer Buttons (Bottom - completely unblocked)
   document.getElementById('startManualRestBtn')?.addEventListener('click', () => startRestTimer(userSettings.defaultRestSec || 90));
   document.getElementById('triggerPRCelebrationBtn')?.addEventListener('click', () => triggerPRCelebration('Manual PR Celebration', 'Tested golden celebration cannons!'));
   document.getElementById('restAdd30Btn')?.addEventListener('click', () => addRestSeconds(30));
@@ -1430,6 +1727,13 @@ function bindEvents() {
   });
   document.getElementById('restCancelBtn')?.addEventListener('click', stopRestTimer);
 
+  // Toast Dismissal (Click anywhere on toast or dismiss button)
+  document.getElementById('prToast')?.addEventListener('click', dismissToast);
+  document.getElementById('toastDismissBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dismissToast();
+  });
+
   // Actions
   document.getElementById('quickAddButton').addEventListener('click', () => openEntryModal('meal'));
   document.getElementById('addMealButton').addEventListener('click', () => openEntryModal('meal'));
@@ -1440,30 +1744,13 @@ function bindEvents() {
   document.getElementById('saveExModalBtn').addEventListener('click', saveCustomExercise);
   document.getElementById('cancelExModalBtn').addEventListener('click', () => closeModal('exerciseModal'));
 
-  // Custom Food Cheatsheet Modal
-  document.getElementById('openAddCustomFoodModalBtn')?.addEventListener('click', () => {
-    document.getElementById('customFoodModalTitle').textContent = 'Add Custom Food to Cheatsheet';
-    document.getElementById('cfEditId').value = '';
-    document.getElementById('cfName').value = '';
-    document.getElementById('cfPortion').value = '100g base';
-    document.getElementById('cfGrams').value = '100';
-    document.getElementById('cfCalories').value = '';
-    document.getElementById('cfProtein').value = '';
-    openModal('customFoodModal');
-  });
-  document.getElementById('saveCustomFoodBtn')?.addEventListener('click', saveCustomFood);
-  document.getElementById('cancelCustomFoodBtn')?.addEventListener('click', () => closeModal('customFoodModal'));
-
-  // Recovery listeners
-  ['sorenessLog', 'moodLog', 'jointLog', 'notesLog'].forEach(id => {
-    document.getElementById(id)?.addEventListener('change', saveRecoveryLog);
-  });
-
   // Cheatsheet Drawer Modal
   document.getElementById('openCheatsheetDrawerBtn').addEventListener('click', () => openModal('cheatsheetModal'));
   document.getElementById('closeCheatsheetModalBtn').addEventListener('click', () => closeModal('cheatsheetModal'));
   document.getElementById('cheatSearchInput')?.addEventListener('input', renderCheatsheetDrawer);
+  document.getElementById('resetCheatsheetBtn')?.addEventListener('click', resetCheatsheetToDefaults);
 
+  // Category filter pills
   document.querySelectorAll('.cat-pill').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
@@ -1471,6 +1758,29 @@ function bindEvents() {
       activeCatFilter = btn.dataset.cat;
       renderCheatsheetDrawer();
     });
+  });
+
+  // Custom Food / Recipe Editor Modal
+  document.getElementById('openAddCustomFoodModalBtn')?.addEventListener('click', () => openEditFoodModal(null));
+  document.getElementById('closeCustomFoodModalBtn')?.addEventListener('click', () => closeModal('customFoodModal'));
+  document.getElementById('cancelCustomFoodBtn')?.addEventListener('click', () => closeModal('customFoodModal'));
+  document.getElementById('saveCustomFoodBtn')?.addEventListener('click', saveCustomFood);
+  document.getElementById('clearRecipeBtn')?.addEventListener('click', clearRecipeIngredients);
+
+  // Smart Recipe Calculator Chip Listeners
+  document.querySelectorAll('.calc-chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      const grams = parseFloat(btn.dataset.grams) || 0;
+      const cal = parseFloat(btn.dataset.cal) || 0;
+      const protein = parseFloat(btn.dataset.protein) || 0;
+      addIngredientToRecipe(name, grams, cal, protein);
+    });
+  });
+
+  // Recovery listeners
+  ['sorenessLog', 'moodLog', 'jointLog', 'notesLog'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', saveRecoveryLog);
   });
 
   // Settings & Backup Modal
@@ -1492,7 +1802,7 @@ function bindEvents() {
     userSettings.defaultRestSec = Number(document.getElementById('defaultRestSecInput').value) || 90;
     saveState();
     closeModal('settingsModal');
-    showToast('⚙️', 'Settings Saved', 'Target macros and water updated.');
+    showToast('⚙️', 'Settings Saved', 'Target macros, water, and rest interval updated.');
   });
 
   document.getElementById('exportBackupBtn').addEventListener('click', exportDataJSON);
@@ -1501,7 +1811,6 @@ function bindEvents() {
   // Backup Banner Handlers
   document.getElementById('bannerExportBtn')?.addEventListener('click', exportDataJSON);
   document.getElementById('bannerDismissBtn')?.addEventListener('click', () => {
-    // Dismiss for 7 days
     const nextWeek = Date.now() + (7 * 24 * 60 * 60 * 1000);
     localStorage.setItem(BACKUP_DISMISSED_KEY, String(nextWeek));
     document.getElementById('backupBanner')?.classList.add('hidden');
@@ -1536,7 +1845,7 @@ function init() {
   bindEvents();
   render();
 
-  // If first time visit, automatically launch the onboarding wizard
+  // If first time visit, launch the onboarding wizard
   if (!localStorage.getItem(ONBOARDED_KEY)) {
     setTimeout(launchOnboardingWizard, 600);
   }

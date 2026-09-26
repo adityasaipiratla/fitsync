@@ -1186,35 +1186,53 @@ button {
   background: rgba(244, 63, 94, 0.1);
 }
 
-/* TOAST ALERT */
+/* TOAST ALERT - ANCHORED AT TOP TO PREVENT ANY CONFLICT WITH REST TIMER */
 .toast-alert {
   position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(120px);
+  top: 20px;
+  right: 20px;
+  transform: translateY(-80px);
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: #ffffff;
   border: 1px solid #38bdf8;
-  padding: 12px 22px;
-  border-radius: 30px;
+  padding: 10px 18px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   opacity: 0;
   pointer-events: none;
-  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   z-index: 10000;
+  cursor: pointer;
+  max-width: 440px;
 }
 
 .toast-alert.show {
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
   opacity: 1;
+  pointer-events: auto;
 }
 
-.toast-icon { font-size: 1.5rem; }
-.toast-title { font-size: 0.92rem; font-weight: 800; color: #38bdf8; }
+.toast-icon { font-size: 1.4rem; flex-shrink: 0; }
+.toast-content { flex: 1; }
+.toast-title { font-size: 0.88rem; font-weight: 800; color: #38bdf8; }
 .toast-sub { font-size: 0.76rem; color: #cbd5e1; }
+.toast-dismiss-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.toast-dismiss-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
 
 /* CHEATSHEET MULTIPLIERS */
 .multiplier-row {
@@ -1361,4 +1379,250 @@ button {
     justify-content: space-between;
   }
 }
+
+/* SMART INGREDIENT CALCULATOR */
+.calc-section {
+  background: #f4f8fe;
+  border: 1px solid #cfe0fa;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.calc-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.calc-chip-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.calc-chip-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.active-ingredients-tray {
+  background: #ffffff;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+}
+
+.active-ing-chip {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.active-ing-chip .remove-ing {
+  cursor: pointer;
+  color: #ef4444;
+  font-weight: 900;
+}
+
+/* MULTI-PILLAR WEEKLY ADHERENCE */
+.adherence-day-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.adherence-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pillar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 150px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 600px) {
+  .pillar-row {
+    grid-template-columns: 100px 1fr 100px;
+    gap: 8px;
+  }
+}
+
+.pillar-label {
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pillar-bar-bg {
+  background: #edf3ff;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pillar-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.pillar-bar-fill.diet { background: #10b981; }
+.pillar-bar-fill.workout { background: #3b82f6; }
+.pillar-bar-fill.water { background: #0ea5e9; }
+
+.pillar-stats {
+  text-align: right;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+
+.weekly-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.weekly-stat-tile {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
+.weekly-stat-tile .val {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--primary);
+}
+
+.weekly-stat-tile .lbl {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+/* COMPREHENSIVE HISTORY CARDS */
+.history-entry-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.history-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.history-quick-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.history-pill {
+  background: #edf5ff;
+  border: 1px solid #cfe0fa;
+  color: #1e3a8a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 10px;
+}
+
+.history-inner-section {
+  background: #fbfcfe;
+  border: 1px solid #eef2f8;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+
+.history-inner-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.history-meals-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-meal-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 3px 0;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.history-ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-ex-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  padding: 3px 0;
+}
+
 

@@ -214,24 +214,24 @@
 
         </div>
 
-        <!-- WEEKLY VIEW PANEL (REAL ADHERENCE DATA & CHARTS) -->
+        <!-- WEEKLY VIEW PANEL (DIET VS WORKOUT VS HYDRATION ADHERENCE) -->
         <div class="view-panel hidden" id="weeklyView">
           <div class="section-head">
             <div>
-              <h2>📈 7-Day Adherence & Macro Compliance</h2>
-              <div class="card-subtext">Calculated dynamically from your actual logged history</div>
+              <h2>📈 7-Day Adherence & Multi-Pillar Compliance</h2>
+              <div class="card-subtext">Clear separation: 🥗 Diet (Calories & Protein) vs 💪 Workout (Routines & Sets) vs 💧 Hydration (3.0L goal)</div>
             </div>
           </div>
           <div id="weeklyMetrics" class="weekly-stats-list"></div>
           <div class="card mt-16" id="weeklySummary"></div>
         </div>
 
-        <!-- HISTORY VIEW PANEL -->
+        <!-- HISTORY VIEW PANEL (COMPREHENSIVE DAILY ARCHIVE) -->
         <div class="view-panel hidden" id="historyView">
           <div class="section-head">
             <div>
-              <h2>📜 Historical Daily Logs</h2>
-              <div class="card-subtext">All archived sessions stored privately in localStorage</div>
+              <h2>📜 Comprehensive Historical Archives</h2>
+              <div class="card-subtext">All logged meals, individual exercise sets, water intake, and recovery notes</div>
             </div>
           </div>
           <div id="historyList" class="history-container"></div>
@@ -288,7 +288,7 @@
 
   </div>
 
-  <!-- FLOATING REST COUNTDOWN TIMER BAR -->
+  <!-- FLOATING REST COUNTDOWN TIMER BAR (BOTTOM ANCHOR - COMPLETELY UNBLOCKED) -->
   <aside class="floating-rest-bar hidden" id="floatingRestBar" aria-label="Rest Countdown Timer">
     <div class="rest-bar-info">
       <span class="rest-icon">⏱️</span>
@@ -305,13 +305,14 @@
     </div>
   </aside>
 
-  <!-- TOAST ALERT NOTIFICATION -->
-  <div class="toast-alert" id="prToast" role="alert" aria-live="polite">
+  <!-- TOAST ALERT NOTIFICATION (TOP NOTIFICATION BANNER - ZERO OVERLAP WITH REST BAR) -->
+  <div class="toast-alert" id="prToast" role="alert" aria-live="polite" title="Click anywhere on this notification to dismiss immediately">
     <span class="toast-icon" id="toastIcon">👏</span>
-    <div>
+    <div class="toast-content">
       <div class="toast-title" id="toastTitle">NEW PERSONAL RECORD!</div>
       <div class="toast-sub" id="toastSub">Pull-ups: 7 reps (+1 rep increase)</div>
     </div>
+    <button class="toast-dismiss-btn" id="toastDismissBtn" title="Dismiss">✕</button>
   </div>
 
   <!-- ENTRY MODAL (ADD MEAL / WORKOUT) -->
@@ -391,51 +392,90 @@
     </div>
   </div>
 
-  <!-- CHEATSHEET DRAWER MODAL WITH MULTIPLIERS & CUSTOM FOOD CREATOR -->
+  <!-- CHEATSHEET DRAWER MODAL WITH FULL EDITABILITY & RECIPE CALCULATOR -->
   <div class="modal" id="cheatsheetModal" aria-hidden="true">
     <div class="modal-card modal-large">
       <div class="modal-head flex-between">
         <div>
           <h3>📖 Vegetarian Calorie & Protein Cheatsheet</h3>
-          <div class="card-subtext">Base 1x / 100g portions with quick multipliers & custom food additions</div>
+          <div class="card-subtext">Click ✏️ on ANY item to customize ingredients, portions, and resultant calories/protein</div>
         </div>
-        <div style="display: flex; gap: 8px;">
-          <button class="mini-button accent-btn" id="openAddCustomFoodModalBtn">➕ Add Food</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="mini-button accent-btn" id="openAddCustomFoodModalBtn">➕ Add Food / Recipe</button>
+          <button class="mini-button" id="resetCheatsheetBtn" title="Reset all foods to original defaults">🔄 Reset Defaults</button>
           <button class="mini-button" id="closeCheatsheetModalBtn">Close</button>
         </div>
       </div>
       
       <div class="field mb-12">
-        <input type="text" id="cheatSearchInput" placeholder="🔍 Search foods (e.g. curd, phulka, whey, rajma, oats)..." />
+        <input type="text" id="cheatSearchInput" placeholder="🔍 Search foods (e.g. curd, phulka, whey, rajma, omelette, oats)..." />
       </div>
 
       <div class="cheat-cat-pills">
-        <button class="cat-pill active" data-cat="all">All</button>
+        <button class="cat-pill active" data-cat="all">All Foods</button>
         <button class="cat-pill" data-cat="dairy">Dairy & Whey</button>
         <button class="cat-pill" data-cat="curries">Curries & Rotis</button>
         <button class="cat-pill" data-cat="meals">Pre-made Meals</button>
         <button class="cat-pill" data-cat="snacks">Snacks & Fruits</button>
-        <button class="cat-pill" data-cat="custom">My Custom Foods</button>
+        <button class="cat-pill" data-cat="custom">User Modified / Custom</button>
       </div>
 
       <div class="cheat-grid" id="cheatListGrid">
-        <!-- Populated via app.js -->
+        <!-- Populated dynamically via app.js -->
       </div>
     </div>
   </div>
 
-  <!-- ADD / EDIT CUSTOM CHEATSHEET FOOD MODAL -->
+  <!-- EDIT RECIPE & SMART INGREDIENT MACRO CALCULATOR MODAL -->
   <div class="modal" id="customFoodModal" aria-hidden="true">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3 id="customFoodModalTitle">Add Custom Food to Cheatsheet</h3>
+    <div class="modal-card modal-large">
+      <div class="modal-head flex-between">
+        <div>
+          <h3 id="customFoodModalTitle">✏️ Edit Cheatsheet Food & Recipe</h3>
+          <div class="card-subtext">Customize recipe ingredients or type exact nutrition numbers directly</div>
+        </div>
+        <button class="mini-button" id="closeCustomFoodModalBtn">✕</button>
       </div>
+
+      <!-- SMART INGREDIENT CALCULATOR SECTION -->
+      <div class="calc-section">
+        <div class="flex-between mb-4">
+          <strong style="color: var(--primary); font-size: 0.9rem;">🧮 Smart Ingredient Macro Calculator (Auto-Sums Resultant Macros)</strong>
+          <button class="mini-button" type="button" id="clearRecipeBtn" style="font-size: 0.74rem;">Clear Ingredients</button>
+        </div>
+        <p class="card-subtext mb-8">Tap staple ingredients to build your recipe (e.g., 2 eggs + 10g cheese). Total weight, calories, and protein auto-calculate in real time:</p>
+
+        <div class="calc-chips-wrap">
+          <button type="button" class="calc-chip-btn" data-name="Whole Egg" data-grams="50" data-cal="75" data-protein="6.3">+1 Whole Egg (75 kcal · 6.3g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Egg White" data-grams="33" data-cal="17" data-protein="3.6">+1 Egg White (17 kcal · 3.6g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Cheese (10g)" data-grams="10" data-cal="35" data-protein="2.5">+10g Cheese (35 kcal · 2.5g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Cheese (25g)" data-grams="25" data-cal="88" data-protein="6.3">+25g Cheese (88 kcal · 6.3g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Paneer (50g)" data-grams="50" data-cal="145" data-protein="9.0">+50g Paneer (145 kcal · 9.0g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Amul Protein Curd (100g)" data-grams="100" data-cal="70" data-protein="6.0">+100g Protein Curd (70 kcal · 6g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Normal Curd (100g)" data-grams="100" data-cal="65" data-protein="4.0">+100g Curd (65 kcal · 4g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Whey (1 scoop 30g)" data-grams="30" data-cal="120" data-protein="24.0">+1 Scoop Whey (120 kcal · 24g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Whey (0.5 scoop 15g)" data-grams="15" data-cal="60" data-protein="12.0">+0.5 Scoop Whey (60 kcal · 12g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Phulka" data-grams="35" data-cal="90" data-protein="3.2">+1 Phulka (90 kcal · 3.2g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Rajma/Dal (100g)" data-grams="100" data-cal="125" data-protein="7.5">+100g Dal/Rajma (125 kcal · 7.5g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Soya Chunks (50g)" data-grams="50" data-cal="170" data-protein="26.0">+50g Soya Chunks (170 kcal · 26g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Oats (50g)" data-grams="50" data-cal="185" data-protein="6.5">+50g Oats (185 kcal · 6.5g P)</button>
+          <button type="button" class="calc-chip-btn" data-name="Oil/Ghee (5g)" data-grams="5" data-cal="45" data-protein="0.0">+1 tsp Ghee/Oil (45 kcal)</button>
+        </div>
+
+        <!-- ACTIVE INGREDIENTS TRAY -->
+        <div class="active-ingredients-tray" id="activeIngredientsTray">
+          <span style="font-size: 0.78rem; color: var(--muted);">No ingredients tapped yet. Tap chips above to auto-sum, or edit inputs below directly.</span>
+        </div>
+      </div>
+
       <div class="field-grid">
         <input type="hidden" id="cfEditId" value="" />
+        
         <div class="field">
-          <label for="cfName">Food / Dish Name</label>
-          <input type="text" id="cfName" placeholder="e.g. Soya Chunks Bhurji" />
+          <label for="cfName">Food / Recipe Name</label>
+          <input type="text" id="cfName" placeholder="e.g. 2-Egg Omelette (No Cheese)" />
         </div>
+
         <div class="field">
           <label for="cfCategory">Category</label>
           <select id="cfCategory">
@@ -445,26 +485,31 @@
             <option value="snacks" selected>Snacks & Fruits</option>
           </select>
         </div>
+
         <div class="field">
           <label for="cfPortion">Base Serving Unit Description</label>
-          <input type="text" id="cfPortion" placeholder="e.g. 100g base or 1 bowl" />
+          <input type="text" id="cfPortion" placeholder="e.g. 2 whole eggs or 2 eggs + 10g cheese" />
         </div>
+
         <div class="field">
           <label for="cfGrams">Base Weight (grams)</label>
           <input type="number" id="cfGrams" value="100" />
         </div>
+
         <div class="field">
-          <label for="cfCalories">Calories (kcal per base)</label>
+          <label for="cfCalories">Resultant Calories (kcal)</label>
           <input type="number" id="cfCalories" placeholder="e.g. 150" />
         </div>
+
         <div class="field">
-          <label for="cfProtein">Protein (grams per base)</label>
-          <input type="number" step="0.1" id="cfProtein" placeholder="e.g. 12" />
+          <label for="cfProtein">Resultant Protein (grams)</label>
+          <input type="number" step="0.1" id="cfProtein" placeholder="e.g. 12.5" />
         </div>
       </div>
+
       <div class="modal-actions">
         <button class="secondary-button" id="cancelCustomFoodBtn">Cancel</button>
-        <button class="primary-button" id="saveCustomFoodBtn">Save to Cheatsheet</button>
+        <button class="primary-button" id="saveCustomFoodBtn">Save Recipe to Cheatsheet</button>
       </div>
     </div>
   </div>
